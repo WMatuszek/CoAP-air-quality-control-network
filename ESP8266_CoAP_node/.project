@@ -41,5 +41,15 @@
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp8266/hardware/esp8266/2.3.0/variants/d1_mini</locationURI>
 		</link>
+		<link>
+			<name>libraries/CoAP_simple_library-1.3.7</name>
+			<type>2</type>
+			<location>C:/Users/Witold/Documents/Arduino/libraries/CoAP_simple_library-1.3.7</location>
+		</link>
+		<link>
+			<name>libraries/SPI</name>
+			<type>2</type>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp8266/hardware/esp8266/2.3.0/libraries/SPI</locationURI>
+		</link>
 	</linkedResources>
 </projectDescription>
