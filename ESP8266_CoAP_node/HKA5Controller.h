@@ -12,8 +12,13 @@
 
 namespace HKA5 {
 
+const uint32_t USART_BAUD_RATE = 9600;
+const uint32_t USART_TIMEOUT_MS = 200;
+
 namespace MSG {
-	const uint8_t LENGTH = 31;   //0x42 + 31 bytes equal to 32 bytes
+	const uint8_t OPEN_TOKEN = 0x42;
+
+	const uint8_t LENGTH = 31;   //0x42 + 31 bytes
 
 	const uint8_t PM_1_MSB = 3;
 	const uint8_t PM_1_LSB = 4;
@@ -24,6 +29,7 @@ namespace MSG {
 }
 
 class HKA5Controller {
+
 protected:
 
 	uint8_t *msg;
@@ -33,7 +39,6 @@ public:
 	virtual ~HKA5Controller();
 
 	uint8_t *getMessagePtr(void) { return msg; }
-
 	void attachMessagePtr(uint8_t *msgPtr){ msg = msgPtr; }
 
 	uint16_t getPM_1(void) {
@@ -53,6 +58,6 @@ public:
 	}
 };
 
-} /* namespace HKA5Controller */
+} /* namespace HKA5 */
 
 #endif /* HKA5CONTROLLER_H_ */
