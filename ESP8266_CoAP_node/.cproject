@@ -25,8 +25,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/CoAP_SimpleLib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/WiFi/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/QueueArray}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/Wire}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/QueueArray}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.971444485" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -38,8 +38,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/CoAP_SimpleLib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/WiFi/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/QueueArray}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/Wire}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/QueueArray}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.584222519" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -51,8 +51,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/CoAP_SimpleLib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/WiFi/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/QueueArray}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/Wire}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/QueueArray}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1334711660" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>

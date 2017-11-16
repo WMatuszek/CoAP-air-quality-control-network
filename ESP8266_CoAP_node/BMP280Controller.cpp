@@ -9,8 +9,8 @@
 
 namespace BMP280 {
 
-BMP280Controller::BMP280Controller(SPIClass *spi)
-	: bus_SPI(spi) {}
+BMP280Controller::BMP280Controller(SPIClass *spi, uint8_t pin_cs)
+	: bus_SPI(spi), pin_cs(pin_cs) {}
 
 BMP280Controller::~BMP280Controller() {}
 
@@ -21,18 +21,20 @@ bool BMP280Controller::begin(uint8_t addr, uint8_t chipid) {
 	// hardware SPI
 	bus_SPI->begin();
 
-	if (read8(REGISTER_t::ID) != chipid)
+	if (read8(Register_t::ID) != chipid) {
+		bus_SPI->end();
 		return false;
+	}
 
 	readCoefficients();
 
-	write8(REGISTER_t::CONTROL, 0x3F);
+	write8(Register_t::CONTROL, 0x3F);
 	return true;
 }
 
 float BMP280Controller::readTemperature(void) {
 	int32_t var1, var2;
-	int32_t adc_T = read24(REGISTER_t::TEMPDATA);
+	int32_t adc_T = read24(Register_t::TEMPDATA);
 	adc_T >>= 4;
 
 	var1 = ((((adc_T >> 3) - ((int32_t) cData.dig_T1 << 1)))
@@ -52,7 +54,7 @@ float BMP280Controller::readPressure(void) {
 	  // Must be done first to get the t_fine variable set up
 	  readTemperature();
 
-	  int32_t adc_P = read24(REGISTER_t::PRESSUREDATA);
+	  int32_t adc_P = read24(Register_t::PRESSUREDATA);
 	  adc_P >>= 4;
 
 	  var1 = ((int64_t)t_fine) - 128000;
@@ -84,18 +86,18 @@ float BMP280Controller::readAltitude(float seaLevelhPa) {
 }
 
 void BMP280Controller::readCoefficients(void) {
-	cData.dig_T1 = read16_LE(REGISTER_t::DIG_T1);
-	cData.dig_T2 = readS16_LE(REGISTER_t::DIG_T2);
-	cData.dig_T3 = readS16_LE(REGISTER_t::DIG_T3);
-	cData.dig_P1 = read16_LE(REGISTER_t::DIG_P1);
-	cData.dig_P2 = readS16_LE(REGISTER_t::DIG_P2);
-	cData.dig_P3 = readS16_LE(REGISTER_t::DIG_P3);
-	cData.dig_P4 = readS16_LE(REGISTER_t::DIG_P4);
-	cData.dig_P5 = readS16_LE(REGISTER_t::DIG_P5);
-	cData.dig_P6 = readS16_LE(REGISTER_t::DIG_P6);
-	cData.dig_P7 = readS16_LE(REGISTER_t::DIG_P7);
-	cData.dig_P8 = readS16_LE(REGISTER_t::DIG_P8);
-	cData.dig_P9 = readS16_LE(REGISTER_t::DIG_P9);
+	cData.dig_T1 = read16_LE(Register_t::DIG_T1);
+	cData.dig_T2 = readS16_LE(Register_t::DIG_T2);
+	cData.dig_T3 = readS16_LE(Register_t::DIG_T3);
+	cData.dig_P1 = read16_LE(Register_t::DIG_P1);
+	cData.dig_P2 = readS16_LE(Register_t::DIG_P2);
+	cData.dig_P3 = readS16_LE(Register_t::DIG_P3);
+	cData.dig_P4 = readS16_LE(Register_t::DIG_P4);
+	cData.dig_P5 = readS16_LE(Register_t::DIG_P5);
+	cData.dig_P6 = readS16_LE(Register_t::DIG_P6);
+	cData.dig_P7 = readS16_LE(Register_t::DIG_P7);
+	cData.dig_P8 = readS16_LE(Register_t::DIG_P8);
+	cData.dig_P9 = readS16_LE(Register_t::DIG_P9);
 }
 
 void BMP280Controller::write8(byte reg, byte value) {

@@ -34,6 +34,8 @@ protected:
 
 	uint8_t *msg;
 
+	uint8_t pin_sleep_ctrl;
+
 public:
 	HKA5Controller();
 	virtual ~HKA5Controller();
@@ -56,6 +58,9 @@ public:
 		uint8_t lsb = *(msg + MSG::PM_10_LSB);
 		return ((uint16_t)msb << 8) | lsb;
 	}
+
+	void sleep(void) {} // set pin high
+	void wakeUp(void) {} // set pin low
 };
 
 } /* namespace HKA5 */

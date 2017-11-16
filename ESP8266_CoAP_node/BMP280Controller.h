@@ -9,6 +9,7 @@
 #define BMP280CONTROLLER_H_
 
 #include "Arduino.h"
+#include "SPI.h"
 
 namespace BMP280 {
 
@@ -17,7 +18,7 @@ const uint32_t SPI_BUS_SPEED = 500000;
 const uint8_t ADDRESS = 0x77;
 const uint8_t CHIP_ID = 0x58;
 
-enum REGISTER_t {
+enum Register_t {
 	DIG_T1 = 0x88,
 	DIG_T2 = 0x8A,
 	DIG_T3 = 0x8C,
@@ -40,11 +41,10 @@ enum REGISTER_t {
 	TEMPDATA = 0xFA,
 };
 
-struct CalibratioData {
+struct CalibrationData {
   uint16_t dig_T1;
   int16_t  dig_T2;
   int16_t  dig_T3;
-
   uint16_t dig_P1;
   int16_t  dig_P2;
   int16_t  dig_P3;
@@ -54,7 +54,6 @@ struct CalibratioData {
   int16_t  dig_P7;
   int16_t  dig_P8;
   int16_t  dig_P9;
-
   uint8_t  dig_H1;
   int16_t  dig_H2;
   uint8_t  dig_H3;
@@ -67,13 +66,13 @@ struct CalibratioData {
 class BMP280Controller {
 private:
 	SPIClass *bus_SPI;
-	uint32_t pin_cs = SS;
+	uint8_t pin_cs;
 
-	CalibratioData cData;
-	int64_t t_fine;
+	CalibrationData cData;
+	int64_t t_fine = 0;
 
 public:
-	BMP280Controller(SPIClass *spi);
+	BMP280Controller(SPIClass *spi, uint8_t pin_cs);
 	virtual ~BMP280Controller();
 
     bool  begin(uint8_t addr = BMP280::ADDRESS, uint8_t chipid = BMP280::CHIP_ID);

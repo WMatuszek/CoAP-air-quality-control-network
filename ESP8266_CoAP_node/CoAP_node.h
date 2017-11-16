@@ -11,7 +11,9 @@
 #define _SERIAL_HKA5		Serial
 #define _SERIAL_CONSOLE		Serial
 
-// #TODO JSON style config of SSID, PASSWORD
+#define PIN_BMP280_CS		SS
+
+// #TODO NMEA style config of SSID, PASSWORD
 namespace CONFIG_MSG {
 	const uint8_t OPEN_TOKEN = 0x22;
 
