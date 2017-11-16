@@ -184,10 +184,10 @@ environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.DTS
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.DTS/value=0
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.LOCAL/delimiter=;
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.LOCAL/operation=replace
-environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.LOCAL/value=1509926779
+environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.LOCAL/value=1510797023
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.UTC/delimiter=;
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.UTC/operation=replace
-environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.UTC/value=1509923179
+environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.UTC/value=1510793423
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.ZONE/delimiter=;
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.ZONE/operation=replace
 environment/project/io.sloeber.core.toolChain.release.706587961/A.EXTRA.TIME.ZONE/value=3600
@@ -526,7 +526,7 @@ environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.BOARD_NAM
 environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.BOARD_NAME/value=WeMos D1 R2 & mini
 environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.COM_PORT/delimiter=;
 environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.COM_PORT/operation=replace
-environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.COM_PORT/value=COM23
+environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.COM_PORT/value=COM26
 environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.ECLIPSE_LOCATION/delimiter=;
 environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.ECLIPSE_LOCATION/operation=replace
 environment/project/io.sloeber.core.toolChain.release.706587961/JANTJE.ECLIPSE_LOCATION/value=D\:\\Rozne\\sloeber\\
