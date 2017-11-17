@@ -2,12 +2,12 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-11-16 03:07:04
+//This file has been generated on 2017-11-16 19:36:14
 
 #include "Arduino.h"
 #include "CoAP_node.h"
 #include "Arduino.h"
-#include "SPI.h"
+#include "Wire.h"
 #include "WiFi.h"
 #include "WiFiUdp.h"
 #include "coap.h"

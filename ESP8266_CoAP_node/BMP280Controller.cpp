@@ -9,32 +9,32 @@
 
 namespace BMP280 {
 
-BMP280Controller::BMP280Controller(SPIClass *spi, uint8_t pin_cs)
-	: bus_SPI(spi), pin_cs(pin_cs) {}
+BMP280Controller::BMP280Controller(TwoWire *i2c)
+	: bus_I2C(i2c) {}
 
 BMP280Controller::~BMP280Controller() {}
 
 bool BMP280Controller::begin(uint8_t addr, uint8_t chipid) {
-	deselect();
-	pinMode(pin_cs, OUTPUT);
-
 	// hardware SPI
-	bus_SPI->begin();
+	bus_I2C->begin();
 
-	if (read8(Register_t::ID) != chipid) {
-		bus_SPI->end();
+	if (read8(RegAddr_t::ID) != chipid) {
+		Serial.println(read8(RegAddr_t::ID), 16);
 		return false;
 	}
 
 	readCoefficients();
 
-	write8(Register_t::CONTROL, 0x3F);
+	write8(RegAddr_t::CONTROL,
+			(0x01 << REG_CONTROL_POVSAMP_Pos)
+					| (0x07 << REG_CONTROL_TOVSAMP_Pos)
+					| (0x03 << REG_CONTROL_PMODE_Pos));
 	return true;
 }
 
 float BMP280Controller::readTemperature(void) {
 	int32_t var1, var2;
-	int32_t adc_T = read24(Register_t::TEMPDATA);
+	int32_t adc_T = read24(RegAddr_t::TEMPDATA);
 	adc_T >>= 4;
 
 	var1 = ((((adc_T >> 3) - ((int32_t) cData.dig_T1 << 1)))
@@ -54,7 +54,7 @@ float BMP280Controller::readPressure(void) {
 	  // Must be done first to get the t_fine variable set up
 	  readTemperature();
 
-	  int32_t adc_P = read24(Register_t::PRESSUREDATA);
+	  int32_t adc_P = read24(RegAddr_t::PRESSUREDATA);
 	  adc_P >>= 4;
 
 	  var1 = ((int64_t)t_fine) - 128000;
@@ -86,78 +86,67 @@ float BMP280Controller::readAltitude(float seaLevelhPa) {
 }
 
 void BMP280Controller::readCoefficients(void) {
-	cData.dig_T1 = read16_LE(Register_t::DIG_T1);
-	cData.dig_T2 = readS16_LE(Register_t::DIG_T2);
-	cData.dig_T3 = readS16_LE(Register_t::DIG_T3);
-	cData.dig_P1 = read16_LE(Register_t::DIG_P1);
-	cData.dig_P2 = readS16_LE(Register_t::DIG_P2);
-	cData.dig_P3 = readS16_LE(Register_t::DIG_P3);
-	cData.dig_P4 = readS16_LE(Register_t::DIG_P4);
-	cData.dig_P5 = readS16_LE(Register_t::DIG_P5);
-	cData.dig_P6 = readS16_LE(Register_t::DIG_P6);
-	cData.dig_P7 = readS16_LE(Register_t::DIG_P7);
-	cData.dig_P8 = readS16_LE(Register_t::DIG_P8);
-	cData.dig_P9 = readS16_LE(Register_t::DIG_P9);
+	cData.dig_T1 = read16_LE(RegAddr_t::DIG_T1);
+	cData.dig_T2 = readS16_LE(RegAddr_t::DIG_T2);
+	cData.dig_T3 = readS16_LE(RegAddr_t::DIG_T3);
+	cData.dig_P1 = read16_LE(RegAddr_t::DIG_P1);
+	cData.dig_P2 = readS16_LE(RegAddr_t::DIG_P2);
+	cData.dig_P3 = readS16_LE(RegAddr_t::DIG_P3);
+	cData.dig_P4 = readS16_LE(RegAddr_t::DIG_P4);
+	cData.dig_P5 = readS16_LE(RegAddr_t::DIG_P5);
+	cData.dig_P6 = readS16_LE(RegAddr_t::DIG_P6);
+	cData.dig_P7 = readS16_LE(RegAddr_t::DIG_P7);
+	cData.dig_P8 = readS16_LE(RegAddr_t::DIG_P8);
+	cData.dig_P9 = readS16_LE(RegAddr_t::DIG_P9);
 }
 
-void BMP280Controller::write8(byte reg, byte value) {
-	bus_SPI->beginTransaction(SPISettings(BMP280::SPI_BUS_SPEED, MSBFIRST, SPI_MODE0));
-	select();
-	bus_SPI->transfer(reg & ~0x80);
-	bus_SPI->transfer(value);
-	deselect();
-	bus_SPI->endTransaction();
+void BMP280Controller::write8(uint8_t reg, uint8_t value) {
+	bus_I2C->beginTransmission(BMP280::ADDRESS_I2C);
+	bus_I2C->write(reg);
+	bus_I2C->write(value);
+	bus_I2C->endTransmission();
 }
 
-uint8_t BMP280Controller::read8(byte reg) {
-	bus_SPI->beginTransaction(SPISettings(BMP280::SPI_BUS_SPEED, MSBFIRST, SPI_MODE0));
-	select();
-	bus_SPI->transfer(reg | 0x80);
-	uint8_t val = bus_SPI->transfer(0x00);
-	deselect();
-	bus_SPI->endTransaction();
+uint8_t BMP280Controller::read8(uint8_t reg) {
+	bus_I2C->beginTransmission(BMP280::ADDRESS_I2C);
+	bus_I2C->write((uint8_t)reg);
+	bus_I2C->endTransmission();
+	bus_I2C->requestFrom(BMP280::ADDRESS_I2C, (uint8_t)1);
+    uint8_t value = bus_I2C->read();
 
-	return val;
+	return value;
 }
 
-uint16_t BMP280Controller::read16(byte reg) {
-	bus_SPI->beginTransaction(SPISettings(BMP280::SPI_BUS_SPEED, MSBFIRST, SPI_MODE0));
-	select();
-	bus_SPI->transfer(reg | 0x80);
-	uint16_t val = bus_SPI->transfer(0x00);
-	val <<= 8;
-	val |= bus_SPI->transfer(0x00);
-	deselect();
-	bus_SPI->endTransaction();
+uint16_t BMP280Controller::read16(uint8_t reg) {
+	bus_I2C->beginTransmission(BMP280::ADDRESS_I2C);
+	bus_I2C->write((uint8_t)reg);
+	bus_I2C->endTransmission();
+	bus_I2C->requestFrom(BMP280::ADDRESS_I2C, (uint8_t)2);
+    uint16_t value = (bus_I2C->read() << 8) | bus_I2C->read();
 
-	return val;
+	return value;
 }
 
-uint32_t BMP280Controller::read24(byte reg) {
-	bus_SPI->beginTransaction(SPISettings(BMP280::SPI_BUS_SPEED, MSBFIRST, SPI_MODE0));
-	select();
-	bus_SPI->transfer(reg | 0x80);
-	uint32_t val = bus_SPI->transfer(0x00);
-	val <<= 8;
-	val |= bus_SPI->transfer(0x00);
-	val <<= 8;
-	val |= bus_SPI->transfer(0x00);
-	deselect();
-	bus_SPI->endTransaction();
+uint32_t BMP280Controller::read24(uint8_t reg) {
+	bus_I2C->beginTransmission(BMP280::ADDRESS_I2C);
+	bus_I2C->write((uint8_t)reg);
+	bus_I2C->endTransmission();
+	bus_I2C->requestFrom(BMP280::ADDRESS_I2C, (uint8_t)3);
+	uint32_t value = (bus_I2C->read() << 16) | (bus_I2C->read() << 8) | bus_I2C->read();
 
-	return val;
+	return value;
 }
 
-int16_t BMP280Controller::readS16(byte reg) {
+int16_t BMP280Controller::readS16(uint8_t reg) {
 	return (int16_t)read16(reg);
 }
 
-uint16_t BMP280Controller::read16_LE(byte reg) {
+uint16_t BMP280Controller::read16_LE(uint8_t reg) {
 	  uint16_t tmp = read16(reg);
 	  return (tmp >> 8) | (tmp << 8);
 }
 
-int16_t BMP280Controller::readS16_LE(byte reg) {\
+int16_t BMP280Controller::readS16_LE(uint8_t reg) {\
 	return (int16_t)read16_LE(reg);
 }
 

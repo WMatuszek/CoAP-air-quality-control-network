@@ -1,7 +1,7 @@
 #include "CoAP_node.h"
 
 #include "Arduino.h"
-#include "SPI.h"
+#include "Wire.h"
 #include "WiFi.h"
 #include "WiFiUdp.h"
 
@@ -32,7 +32,7 @@ static uint16_t PM_10;
 WiFiUDP udp;
 Coap coap(udp);
 
-BMP280::BMP280Controller BMP280Ctrl(&SPI, PIN_BMP280_CS);
+BMP280::BMP280Controller BMP280Ctrl(&Wire);
 HKA5::HKA5Controller HKA5Ctrl;
 
 /*
@@ -48,7 +48,9 @@ void setup() {
 	pinMode(LED_BUILTIN, OUTPUT);
 	digitalWrite(LED_BUILTIN, HIGH);
 
-	_SERIAL_CONSOLE.begin(115200);
+	delay(2000);
+
+	_SERIAL_CONSOLE.begin(9600);
 
 	_SERIAL_CONSOLE.println("--- Config begin");
 
@@ -59,6 +61,7 @@ void setup() {
 
 	_SERIAL_CONSOLE.print("BMP280 sensor config ");
 	for (int i = 0; i < 3; ++i){
+		delay(200);
 		if (BMP280Ctrl.begin()) {
 			_SERIAL_CONSOLE.print(" OK");
 			break;
@@ -68,26 +71,26 @@ void setup() {
 
 	_SERIAL_CONSOLE.println("\r\nWIFI config");
 
-	if (WiFi.begin(ssid, password) == WL_CONNECT_FAILED)
-		_SERIAL_CONSOLE.print("begin() failed");
-
-
-//	while (WiFi.status() != WL_CONNECTED) {
-//		delay(500);
-//		Serial.print(".");
-//	}
-// _SERIAL_CONSOLE.println(" CONNECTED!");
-
-
-	_SERIAL_CONSOLE.println("CoAP config");
-
-	coap.server(COAP_callback_PM, "PM");
-	coap.server(COAP_callback_pressure, "pressure");
-	coap.server(COAP_callback_nodeInfo, "nodeInfo");
-	coap.response(COAP_callback_response);
-	coap.start();
-
-	_SERIAL_CONSOLE.println("--- Config done");
+//	if (WiFi.begin(ssid, password) == WL_CONNECT_FAILED)
+//		_SERIAL_CONSOLE.print("begin() failed");
+//
+//
+////	while (WiFi.status() != WL_CONNECTED) {
+////		delay(500);
+////		Serial.print(".");
+////	}
+//// _SERIAL_CONSOLE.println(" CONNECTED!");
+//
+//
+//	_SERIAL_CONSOLE.println("CoAP config");
+//
+//	coap.server(COAP_callback_PM, "PM");
+//	coap.server(COAP_callback_pressure, "pressure");
+//	coap.server(COAP_callback_nodeInfo, "nodeInfo");
+//	coap.response(COAP_callback_response);
+//	coap.start();
+//
+//	_SERIAL_CONSOLE.println("--- Config done");
 
 }
 
@@ -99,6 +102,11 @@ void loop() {
 
 	serialCheck();
 	printPM();
+
+	float tmp = BMP280Ctrl.readTemperature();
+	_SERIAL_CONSOLE.println(tmp);
+	float press = BMP280Ctrl.readPressure();
+	_SERIAL_CONSOLE.println(press);
 }
 
 /*

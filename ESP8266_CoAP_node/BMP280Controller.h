@@ -9,16 +9,20 @@
 #define BMP280CONTROLLER_H_
 
 #include "Arduino.h"
-#include "SPI.h"
+#include "Wire.h"
 
 namespace BMP280 {
 
 const uint32_t SPI_BUS_SPEED = 500000;
 
-const uint8_t ADDRESS = 0x77;
-const uint8_t CHIP_ID = 0x58;
+const uint8_t ADDRESS_I2C = 0x77;
+const uint8_t CHIP_ID = 0x60;
 
-enum Register_t {
+const uint8_t REG_CONTROL_PMODE_Pos = 0;
+const uint8_t REG_CONTROL_TOVSAMP_Pos = 2;
+const uint8_t REG_CONTROL_POVSAMP_Pos = 5;
+
+enum RegAddr_t {
 	DIG_T1 = 0x88,
 	DIG_T2 = 0x8A,
 	DIG_T3 = 0x8C,
@@ -65,17 +69,16 @@ struct CalibrationData {
 
 class BMP280Controller {
 private:
-	SPIClass *bus_SPI;
-	uint8_t pin_cs;
+	TwoWire *bus_I2C;
 
 	CalibrationData cData;
 	int64_t t_fine = 0;
 
 public:
-	BMP280Controller(SPIClass *spi, uint8_t pin_cs);
+	BMP280Controller(TwoWire *spi);
 	virtual ~BMP280Controller();
 
-    bool  begin(uint8_t addr = BMP280::ADDRESS, uint8_t chipid = BMP280::CHIP_ID);
+    bool  begin(uint8_t addr = BMP280::ADDRESS_I2C, uint8_t chipid = BMP280::CHIP_ID);
     float readTemperature(void);
     float readPressure(void);
     float readAltitude(float seaLevelhPa = 1013.25);
@@ -93,8 +96,8 @@ private:
     uint16_t  	read16_LE(byte reg); // little endian
     int16_t   	readS16_LE(byte reg); // little endian
 
-    void 		select(void) { digitalWrite(pin_cs, LOW); }
-    void 		deselect(void) { digitalWrite(pin_cs, HIGH); }
+//    void 		select(void) { digitalWrite(pin_cs, LOW); }
+//    void 		deselect(void) { digitalWrite(pin_cs, HIGH); }
 };
 
 } /* namespace BMP280 */
