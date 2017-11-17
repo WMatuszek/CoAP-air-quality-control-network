@@ -8,11 +8,14 @@
 #ifndef COAP_NODE_H_
 #define COAP_NODE_H_
 
-#define _SERIAL_HKA5		Serial
-#define _SERIAL_CONSOLE		Serial
+#define WIFI_CONNECT_ON_STARTUP
 
-#define PIN_BMP280_CS		SS
+#define _SERIAL_HKA5				Serial
+#define _SERIAL_CONSOLE				Serial
 
+#define WIFI_CRED_BUFFER_SIZE		20
+
+// #TODO move to file
 // #TODO NMEA style config of SSID, PASSWORD
 namespace CONFIG_MSG {
 	const uint8_t OPEN_TOKEN = 0x22;
