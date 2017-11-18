@@ -3,7 +3,9 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include <ESP8266WiFi.h>
+#include <ESP8266Ping.h>
 #include <coap_server.h>
+
 #include "QueueArray.h"
 
 #include "HKA5Controller.h"
@@ -15,18 +17,16 @@ static char password[WIFI_CRED_BUFFER_SIZE] 	= "herpderp";
 
 static char node_info_msg[50] 					= "Node info here";
 
+static uint8_t HKA5_msgBuffer[HKA5::MSG::LENGTH];
+
 coapServer coap;
 
 /*
  * GLobal variables
  */
-static uint8_t HKA5_msgBuffer[HKA5::MSG::LENGTH];
-
-//static QueueArray<uint16_t> PM_1_queue;
-static uint16_t PM_1;
-static uint16_t PM_2_5;
-static uint16_t PM_10;
-
+static HKA5::PMData_t Measure_PM = {0,0,0};
+static float Measure_press = 0;
+static float Measure_temp = 0;
 
 BMP280::BMP280Controller BMP280Ctrl(&Wire);
 HKA5::HKA5Controller HKA5Ctrl;
@@ -40,7 +40,7 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer);
-//void COAP_callback_response(coapPacket *packet, IPAddress ip, int port, int observer) {}
+void COAP_callback_response(coapPacket *packet, IPAddress ip, int port, int observer) {} // { _SERIAL_CONSOLE.println("RESP"); }
 
 void setup() {
 	yield();
@@ -91,7 +91,10 @@ void setup_sensors() {
 void setup_wifi(){
 	// WIFI config
 	_SERIAL_CONSOLE.println("\r\nWIFI config");
-	WiFi.setAutoConnect(false);
+//	WiFi.setAutoConnect(false);
+	WiFi.persistent(true);
+	WiFi.mode(WiFiMode_t::WIFI_STA);
+	WiFi.setSleepMode(WiFiSleepType_t::WIFI_NONE_SLEEP);
 	WiFi.begin(ssid, password);
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500); yield();
@@ -99,31 +102,33 @@ void setup_wifi(){
 	}
 	_SERIAL_CONSOLE.println(" CONNECTED!");
 	_SERIAL_CONSOLE.println(WiFi.localIP());
+	_SERIAL_CONSOLE.println(WiFi.gatewayIP());
 }
 
 void setup_coap(){
 	// CoAP config
 	_SERIAL_CONSOLE.println("CoAP config");
-	coap.server(COAP_callback_PM, "PM");
+	coap.server(COAP_callback_response, "response");
+	coap.server(COAP_callback_PM, "pm");
 	coap.server(COAP_callback_pressure, "pressure");
 	coap.server(COAP_callback_temperature, "temperature");
 	coap.server(COAP_callback_nodeInfo, "info");
-//	coap.server(COAP_callback_response, "resp");
 	coap.start();
 }
 
 void loop() {
+
 	yield();
 	coap.loop();
 
 	digitalWrite(LED_BUILTIN, HIGH);
-	delay(500);
+	delay(1000);
 
 	yield();
 	coap.loop();
 
 	digitalWrite(LED_BUILTIN, LOW);
-	delay(500);
+	delay(1000);
 
 	USARTSerialInputCheck();
 
@@ -131,12 +136,12 @@ void loop() {
 		_SERIAL_CONSOLE.println("WIFI disconnected, attempting to reconnect");
 		WiFi.reconnect();
 	}
+	if (!Ping.ping(WiFi.gatewayIP(), 1)){
+		_SERIAL_CONSOLE.println("Ping fail!");
+	}
 
-//	printPM();
-//	float tmp = BMP280Ctrl.readTemperature();
-//	_SERIAL_CONSOLE.println(tmp);
-//	float press = BMP280Ctrl.readPressure();
-//	_SERIAL_CONSOLE.println(press);
+	Measure_temp = BMP280Ctrl.readTemperature();
+	Measure_press = BMP280Ctrl.readPressure();
 }
 
 /*
@@ -185,9 +190,7 @@ bool readConfigMsg(void){
 bool readPM(void) {
 	if (HKA5::MSG::LENGTH
 			== _SERIAL_CONSOLE.readBytes(HKA5_msgBuffer, HKA5::MSG::LENGTH)) {
-		PM_1 = HKA5Ctrl.getPM_1();
-		PM_2_5 = HKA5Ctrl.getPM_2_5();
-		PM_10 = HKA5Ctrl.getPM_10();
+		Measure_PM = HKA5Ctrl.getPM();
 		return true;
 	}
 	return false;
@@ -196,11 +199,11 @@ bool readPM(void) {
 void printPM(void){
 	_SERIAL_CONSOLE.println("PM values [ug/m3]:");
 	_SERIAL_CONSOLE.print("PM 1 = ");
-	_SERIAL_CONSOLE.println(PM_1);
+	_SERIAL_CONSOLE.println(Measure_PM.PM_1);
 	_SERIAL_CONSOLE.print("PM 2.5 = ");
-	_SERIAL_CONSOLE.println(PM_2_5);
+	_SERIAL_CONSOLE.println(Measure_PM.PM_2_5);
 	_SERIAL_CONSOLE.print("PM 10 = ");
-	_SERIAL_CONSOLE.println(PM_10);
+	_SERIAL_CONSOLE.println(Measure_PM.PM_10);
 }
 
 /*
@@ -208,46 +211,48 @@ void printPM(void){
  */
 
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.println("PM get callback");
+	_SERIAL_CONSOLE.print("PM get callback: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
 	char resp[50];
-	sprintf(resp, "1=%d,2_5=%d,10=%d", 11, 22, 33);
+	sprintf(resp, "1=%d,2_5=%d,10=%d", Measure_PM.PM_1, Measure_PM.PM_2_5, Measure_PM.PM_10);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
 
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.println("Pressure get callback");
+	_SERIAL_CONSOLE.print("Pressure get callback: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[50];
-	sprintf(resp, "%d", 10000);
+	char resp[10];
+	dtostrf(Measure_press, 5, 2, resp);
+	resp[10] = '\0';
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
 
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.println("Temperature get callback");
+	_SERIAL_CONSOLE.print("Temperature get callback: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[50];
-	sprintf(resp, "%d", 25);
+	char resp[10];
+	dtostrf(Measure_temp, 3, 2, resp);
+	resp[10] = '\0';
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
 
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.println("Node info callback");
+	_SERIAL_CONSOLE.print("Node info callback: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';

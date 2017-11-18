@@ -2,18 +2,20 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-11-18 19:05:40
+//This file has been generated on 2017-11-18 21:27:44
 
 #include "Arduino.h"
 #include "CoAP_node.h"
 #include "Arduino.h"
 #include "Wire.h"
 #include <ESP8266WiFi.h>
+#include <ESP8266Ping.h>
 #include <coap_server.h>
 #include "QueueArray.h"
 #include "HKA5Controller.h"
 #include "BMP280Controller.h"
 #include "ConfigMsg.h"
+void COAP_callback_response(coapPacket *packet, IPAddress ip, int port, int observer) ;
 void setup() ;
 void setup_sensors() ;
 void setup_wifi();

@@ -8,10 +8,11 @@
 #include "ConfigMsg.h"
 
 #include <cstring>
+#include "Arduino.h"
 
 ConfigMsg::ConfigMsg() {
-	tokens[ConfigMsg::TOKEN_SSID] = nullptr;
-	tokens[ConfigMsg::TOKEN_PW] = nullptr;
+	for (int i=0; i<ConfigMsg::TOKEN_CNT; ++i)
+		tokens[i] = nullptr;
 }
 
 ConfigMsg::~ConfigMsg() {}
@@ -44,27 +45,34 @@ bool ConfigMsg::parseCharacter(char c) {
 }
 
 void ConfigMsg::parseConfigMsg() {
+	Serial.println("Config message parse:");
+
 	if (!isComplete()) {
 		valid = false;
 		return;
 	}
 
-	if (!valueCountCorrect()) {
+	Serial.println("- complete");
+
+	if (!tokenCountCorrect()) {
 		valid = false;
 		return;
 	}
+	Serial.println("- token cnt ok");
 
-	char sep = ConfigMsg::SEPARATOR;
+	char sep[2] = { ConfigMsg::SEPARATOR, '\0' };
 	char *tmp = msg + 1;
-	char *id = strtok(tmp, &sep);
+	char *id = strtok(tmp, sep);
 
 	if (strcmp(id, ID_TOKEN) != 0){
 		valid = false;
 		return;
 	}
 
-	tokens[ConfigMsg::TOKEN_SSID] = strtok(NULL, &sep);
-	tokens[ConfigMsg::TOKEN_PW] = strtok(NULL, &sep);
+	Serial.println("- id token ok");
+
+	tokens[ConfigMsg::TOKEN_SSID] = strtok(NULL, sep);
+	tokens[ConfigMsg::TOKEN_PW] = strtok(NULL, sep);
 
 	valid = true;
 }
@@ -95,7 +103,7 @@ char* ConfigMsg::getPW() {
 	return tokens[ConfigMsg::TOKEN_PW];
 }
 
-bool ConfigMsg::valueCountCorrect() {
+bool ConfigMsg::tokenCountCorrect() {
 	uint8_t sepCnt = 0;
 	char *tmp = strchr(msg, ConfigMsg::SEPARATOR);
 	while (tmp != NULL){

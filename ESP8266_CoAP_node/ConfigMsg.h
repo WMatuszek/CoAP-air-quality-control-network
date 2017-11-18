@@ -16,12 +16,12 @@ public:
 	enum State_t { IDLE = 0, OPEN = 1, COMPLETE = 2 };
 
 	static constexpr const char *ID_TOKEN = "CONFIG";
+	static const char SEPARATOR = ',';
 	static const char OPEN_CHAR = '$';
 	static const char CLOSE_CHAR = '*';
-	static const char SEPARATOR = ',';
-	static const uint8_t TOKEN_CNT = 2;
-	static const uint8_t MAX_LEN = 100;
 
+	static const uint8_t MAX_LEN = 100;
+	static const uint8_t TOKEN_CNT = 2;
 	static const uint8_t TOKEN_SSID = 0;
 	static const uint8_t TOKEN_PW = 1;
 
@@ -52,7 +52,7 @@ public:
 
 protected:
 
-	bool valueCountCorrect();
+	bool tokenCountCorrect();
 
 };
 

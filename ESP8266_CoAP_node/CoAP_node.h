@@ -15,5 +15,6 @@
 
 
 #define WIFI_CRED_BUFFER_SIZE		30
+#define MEASUREMENT_CACHE_SIZE		4
 
 #endif /* COAP_NODE_H_ */

@@ -29,6 +29,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP_CoAP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.971444485" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -44,6 +46,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP_CoAP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.584222519" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -59,6 +63,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP_CoAP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1334711660" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>
