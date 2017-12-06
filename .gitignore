@@ -4,3 +4,7 @@ Praca EiT\.docx
 ESP8266_CoAP_node/Release/
 
 OrangePI_CoAP_server/src/\.idea/
+
+OrangePI_CoAP_server/env_setup/AP_config/ver1_bad/
+
+OrangePI_CoAP_server/env_setup/AP_config/ver2_bad/
