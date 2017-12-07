@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-11-18 21:27:44
+//This file has been generated on 2017-12-07 01:34:06
 
 #include "Arduino.h"
 #include "CoAP_node.h"
@@ -11,20 +11,22 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266Ping.h>
 #include <coap_server.h>
+#include <coap_client.h>
 #include "QueueArray.h"
 #include "HKA5Controller.h"
 #include "BMP280Controller.h"
 #include "ConfigMsg.h"
 void COAP_callback_response(coapPacket *packet, IPAddress ip, int port, int observer) ;
 void setup() ;
-void setup_sensors() ;
-void setup_wifi();
-void setup_coap();
+void SensorsSetup() ;
+void WiFiSetup();
+void CoAPSetup();
 void loop() ;
 bool USARTSerialInputCheck(void);
-bool readConfigMsg(void);
-bool readPM(void) ;
-void printPM(void);
+bool ReadNodeConfigMsg(void);
+bool ReadPM(void) ;
+void PrintPM(void);
+uint16_t NodeReportToServer() ;
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);

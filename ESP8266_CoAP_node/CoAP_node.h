@@ -17,4 +17,6 @@
 #define WIFI_CRED_BUFFER_SIZE		30
 #define MEASUREMENT_CACHE_SIZE		4
 
+static const char SERVER_REPORT_URI[] = "node_report/";
+
 #endif /* COAP_NODE_H_ */
