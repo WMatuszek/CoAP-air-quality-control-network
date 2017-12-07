@@ -1,7 +1,7 @@
 __author__ = 'Witold'
 
+from copy import deepcopy
 from coapthon.resources.resource import Resource
-
 
 class TestResource(Resource):
     def __init__(self, name="TestResource", coap_server=None):
@@ -11,7 +11,6 @@ class TestResource(Resource):
         self.connected_nodes = []
 
     def render_GET(self, request):
-        print request.source
         self.connected_nodes.append(request.source)
         return self
 
@@ -26,3 +25,8 @@ class TestResource(Resource):
 
     def render_DELETE(self, request):
         return True
+
+    def get_connected_nodes_copy(self):
+        nodes = deepcopy(self.connected_nodes)
+        self.connected_nodes = []
+        return nodes
