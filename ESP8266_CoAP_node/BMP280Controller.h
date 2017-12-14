@@ -75,7 +75,7 @@ private:
 	int64_t t_fine = 0;
 
 public:
-	BMP280Controller(TwoWire *spi);
+	BMP280Controller(TwoWire *i2c);
 	virtual ~BMP280Controller();
 
     bool  begin(uint8_t addr = BMP280::ADDRESS_I2C, uint8_t chipid = BMP280::CHIP_ID);

@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-12-07 01:34:06
+//This file has been generated on 2017-12-14 02:30:59
 
 #include "Arduino.h"
 #include "CoAP_node.h"
@@ -26,7 +26,9 @@ bool USARTSerialInputCheck(void);
 bool ReadNodeConfigMsg(void);
 bool ReadPM(void) ;
 void PrintPM(void);
-uint16_t NodeReportToServer() ;
+uint32_t GetBatteryStatus(void) ;
+uint16_t CoAP_Ping(IPAddress ip, uint16_t port) ;
+uint16_t CoAP_NodeReportToServer() ;
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);

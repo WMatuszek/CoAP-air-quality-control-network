@@ -10,13 +10,11 @@
 
 #define WIFI_CONNECT_ON_STARTUP
 
-
 #define _SERIAL_CONSOLE				Serial
-
 
 #define WIFI_CRED_BUFFER_SIZE		30
 #define MEASUREMENT_CACHE_SIZE		4
 
-static const char SERVER_REPORT_URI[] = "node_report/";
+static const char SERVER_REPORT_URI[] = "node_report";
 
 #endif /* COAP_NODE_H_ */

@@ -17,8 +17,6 @@
 static char ssid[WIFI_CRED_BUFFER_SIZE]			= "OpiAP";
 static char password[WIFI_CRED_BUFFER_SIZE] 	= "herpderp";
 
-static char node_info_msg[50] 					= "Node info here";
-
 static uint8_t HKA5_msgBuffer[HKA5::MSG::LENGTH];
 
 coapServer coap;
@@ -66,7 +64,7 @@ void setup() {
 	CoAPSetup();
 #endif
 
-	NodeReportToServer();
+	CoAP_NodeReportToServer();
 
 	_SERIAL_CONSOLE.println("--- Config done");
 
@@ -104,7 +102,7 @@ void WiFiSetup(){
 		delay(500); yield();
 		Serial.print(".");
 	}
-	_SERIAL_CONSOLE.println(" CONNECTED!");
+	_SERIAL_CONSOLE.println(" CONNECTED! Local / gateway IP:");
 	_SERIAL_CONSOLE.println(WiFi.localIP());
 	_SERIAL_CONSOLE.println(WiFi.gatewayIP());
 }
@@ -147,7 +145,8 @@ void loop() {
 	}
 
 	if (mainLoopCount % REPORT_LOOP == 0) {
-		NodeReportToServer();
+		CoAP_NodeReportToServer();
+//		CoAP_Ping(WiFi.gatewayIP(), COAP_DEFAULT_PORT);
 		_SERIAL_CONSOLE.println("Report to server");
 	}
 
@@ -219,15 +218,38 @@ void PrintPM(void){
 	_SERIAL_CONSOLE.println(Measure_PM.PM_10);
 }
 
+uint32_t GetBatteryStatus(void) {
+	// #TODO dummy
+	return 100;
+}
+
+uint16_t CoAP_Ping(IPAddress ip, uint16_t port) {
+	coapPacket packet;
+
+	// Make packet
+	packet.version = 1;
+	packet.type = COAP_TYPE::COAP_CON;
+	packet.code = COAP_METHOD::COAP_EMPTY;
+	packet.token = NULL;
+	packet.tokenlen = 0;
+	packet.payload = NULL;
+	packet.payloadlen = 0;
+	packet.optionnum = 0;
+	packet.messageid = rand();
+
+	return coap.sendPacket(&packet, ip, port);
+}
+
 /*
- * Report to server
+ * Get server report resource
  * Send GET request to SERVER_REPORT_URI, at gateway IP
  */
-uint16_t NodeReportToServer() {
+uint16_t CoAP_NodeReportToServer() {
 	IPAddress servIP = WiFi.gatewayIP();
 	coapPacket packet;
 
 	// Make packet
+	packet.version = 1;
 	packet.type = COAP_TYPE::COAP_CON;
 	packet.code = COAP_METHOD::COAP_GET;
 	packet.token = NULL;
@@ -246,7 +268,7 @@ uint16_t NodeReportToServer() {
 }
 
 /*
- * CoAP callbacks #TODO sensor value access
+ * CoAP callbacks
  */
 
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
@@ -257,7 +279,7 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 	_SERIAL_CONSOLE.println(p);
 
 	char resp[50];
-	sprintf(resp, "1=%d,2_5=%d,10=%d", Measure_PM.PM_1, Measure_PM.PM_2_5, Measure_PM.PM_10);
+	sprintf(resp, "{ \"1\":%d, \"2.5\"=%d, \"10\"=%d }", Measure_PM.PM_1, Measure_PM.PM_2_5, Measure_PM.PM_10);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
@@ -297,5 +319,8 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	observer ? coap.sendResponse(node_info_msg) : coap.sendResponse(ip, port, node_info_msg);
+	char resp[50];
+	sprintf(resp, "{ \"ID\":%d, \"battery\"=%d }", (uint32_t)MAC0, GetBatteryStatus());
+
+	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
