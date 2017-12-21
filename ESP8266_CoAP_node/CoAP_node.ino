@@ -24,6 +24,8 @@ coapServer coap;
 /*
  * GLobal variables
  */
+//static Sensor_t observedSensor = Sensor_t::NONE;
+
 static HKA5::PMData_t Measure_PM = {0,0,0};
 static float Measure_press = 0;
 static float Measure_temp = 0;
@@ -124,34 +126,30 @@ void loop() {
 
 	yield();
 	coap.loop();
-
 	digitalWrite(LED_BUILTIN, HIGH);
-	delay(1000);
-
+	delay(500);
 	yield();
 	coap.loop();
-
 	digitalWrite(LED_BUILTIN, LOW);
-	delay(1000);
-
-	USARTSerialInputCheck();
+	delay(500);
+	yield();
 
 	if (WiFi.isConnected() == false){
 		_SERIAL_CONSOLE.println("WIFI disconnected, attempting to reconnect");
 		WiFi.reconnect();
 	}
-	if (!Ping.ping(WiFi.gatewayIP(), 1)){
-		_SERIAL_CONSOLE.println("Ping fail!");
-	}
+//	if (!Ping.ping(WiFi.gatewayIP(), 1)){
+//		_SERIAL_CONSOLE.println("Ping fail!");
+//	}
 
 	if (mainLoopCount % REPORT_LOOP == 0) {
 		CoAP_NodeReportToServer();
-//		CoAP_Ping(WiFi.gatewayIP(), COAP_DEFAULT_PORT);
 		_SERIAL_CONSOLE.println("Report to server");
 	}
 
-	Measure_temp = BMP280Ctrl.readTemperature();
-	Measure_press = BMP280Ctrl.readPressure();
+	USARTSerialInputCheck(); 							// Read either HK-A5 output or config msg
+	Measure_temp = BMP280Ctrl.readTemperature();		// Read temperature
+	Measure_press = BMP280Ctrl.readPressure();			// Read pressure
 
 	++mainLoopCount;
 }
@@ -164,15 +162,21 @@ bool USARTSerialInputCheck(void){
 	while (_SERIAL_CONSOLE.available()){
 		uint8_t token = _SERIAL_CONSOLE.read();
 		if (token == HKA5::MSG::OPEN_TOKEN)
-			ReadPM();
-		if (token == ConfigMsg::OPEN_CHAR)
-			ReadNodeConfigMsg();
+			return ReadPM();
+		if (token == ConfigMsg::OPEN_CHAR) {
+			if (ReadNodeConfigMsg()) {
+				WiFi.disconnect();
+				WiFiSetup();
+			}
+		}
 	}
 	return false;
 }
 
 bool ReadNodeConfigMsg(void){
+	configMsg.clear();
 	configMsg.parseCharacter(ConfigMsg::OPEN_CHAR);
+
 	while (_SERIAL_CONSOLE.available()){
 		configMsg.parseCharacter(_SERIAL_CONSOLE.read());
 		if (configMsg.isComplete()) break;
@@ -183,20 +187,16 @@ bool ReadNodeConfigMsg(void){
 	_SERIAL_CONSOLE.println(configMsg.getMsgBuffer());
 
 	configMsg.parseConfigMsg();
-
 	if (configMsg.isValid()){
 		_SERIAL_CONSOLE.println("---Config msg valid:");
 		strcpy(ssid, configMsg.getSSID());
 		strcpy(password, configMsg.getPW());
 		_SERIAL_CONSOLE.println(ssid);
 		_SERIAL_CONSOLE.println(password);
+		return true;
 	}
-	else {
-		_SERIAL_CONSOLE.println("---Config msg invalid!");
-	}
-
-	configMsg.clear();
-	return true;
+	_SERIAL_CONSOLE.println("---Config msg invalid!");
+	return false;
 }
 
 bool ReadPM(void) {
@@ -251,7 +251,7 @@ uint16_t CoAP_NodeReportToServer() {
 	// Make packet
 	packet.version = 1;
 	packet.type = COAP_TYPE::COAP_CON;
-	packet.code = COAP_METHOD::COAP_GET;
+	packet.code = COAP_METHOD::COAP_EMPTY;
 	packet.token = NULL;
 	packet.tokenlen = 0;
 	packet.payload = NULL;
@@ -259,10 +259,10 @@ uint16_t CoAP_NodeReportToServer() {
 	packet.optionnum = 0;
 	packet.messageid = rand();
 
-	packet.options[packet.optionnum].buffer = (uint8_t *)SERVER_REPORT_URI;
-	packet.options[packet.optionnum].length = strlen(SERVER_REPORT_URI);
-	packet.options[packet.optionnum].number = COAP_OPTION_NUMBER::COAP_URI_PATH;
-	packet.optionnum++;
+//	packet.options[packet.optionnum].buffer = (uint8_t *)SERVER_REPORT_URI;
+//	packet.options[packet.optionnum].length = strlen(SERVER_REPORT_URI);
+//	packet.options[packet.optionnum].number = COAP_OPTION_NUMBER::COAP_URI_PATH;
+//	packet.optionnum++;
 
 	return coap.sendPacket(&packet, servIP, COAP_DEFAULT_PORT);
 }
@@ -279,7 +279,7 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 	_SERIAL_CONSOLE.println(p);
 
 	char resp[50];
-	sprintf(resp, "{ \"1\":%d, \"2.5\"=%d, \"10\"=%d }", Measure_PM.PM_1, Measure_PM.PM_2_5, Measure_PM.PM_10);
+	Measure_PM.toJsonString(resp, 50);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
