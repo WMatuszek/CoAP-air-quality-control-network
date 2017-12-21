@@ -9,6 +9,7 @@
 #define HKA5CONTROLLER_H_
 
 #include <stdint.h>
+#include <Arduino.h>
 
 namespace HKA5 {
 
@@ -16,6 +17,25 @@ struct PMData_t {
 	uint16_t PM_1;
 	uint16_t PM_2_5;
 	uint16_t PM_10;
+
+	PMData_t(uint16_t pm1, uint16_t pm2_5, uint16_t pm10) : PM_1(pm1), PM_2_5(pm2_5), PM_10(pm10) {}
+
+	bool diffAboveMinDelta(PMData_t *other, uint16_t min_delta) {
+		if ((PM_1 > other->PM_1 ? PM_1 - other->PM_1 : other->PM_1 - PM_1) > min_delta) return true;
+		if ((PM_2_5 > other->PM_2_5 ? PM_2_5 - other->PM_2_5 : other->PM_2_5 - PM_2_5) > min_delta) return true;
+		if ((PM_10 > other->PM_10 ? PM_10 - other->PM_10 : other->PM_10 - PM_10) > min_delta) return true;
+		return false;
+	}
+
+	bool toJsonString(char *buff, size_t maxLen){
+		char tmpBuff[50];
+		size_t len = sprintf(tmpBuff, "{ \"1\":%d, \"2.5\"=%d, \"10\"=%d }", PM_1, PM_2_5, PM_10);
+		if (maxLen >= len){
+			strcpy(buff, tmpBuff);
+			return true;
+		}
+		return false;
+	}
 };
 
 const uint32_t USART_BAUD_RATE = 9600;
