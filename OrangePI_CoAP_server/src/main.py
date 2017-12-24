@@ -7,14 +7,15 @@ from coapthon.client.helperclient import HelperClient
 from coapthon.server.coap import CoAP
 from coapthon.defines import COAP_DEFAULT_PORT
 
+import CoAP_Node
 from CoAP_Server_thread import ServerThread
 from CoAP_Client_thread import ClientThread
 from resource_test import TestResource
 
+import SimpleHTTPServer
+
 default_host = "192.168.42.1"
 default_port = COAP_DEFAULT_PORT
-
-used_resources = ("temperature", "pressure", "pm")
 
 shared_resource_uri = 'node_report/'
 shared_resource_i = TestResource()
@@ -27,50 +28,49 @@ class CoAPServer(CoAP):
 
 
 class CoAPClient(CoAP):
+    ResourceStruct_t = namedtuple("ResourceStruct_t", "uri name rt ct")
 
-    ResourceStruct_t = namedtuple("ResourceStruct_t", "uri path rt ct")
-
-    default_resources = {
-        "temperature": "temperature",
-        "pressure": "pressure",
-        "node_info": "info",
-        "air_data": "pm"
-    }
-
-    def __init__(self, host, port, shared_res=TestResource()):
+    def __init__(self, shared_res=TestResource()):
         self.shared_resource = shared_res
-        self.client = HelperClient(server=(host, port))
         self.known_nodes = []
 
-        self.db_ctrl = object #TODO sqlite3 db access
+        self.db_ctrl = object  # TODO sqlite3 db access
 
     def loop(self):
-        nodes = self.shared_resource.get_connected_nodes_copy()
-        print "Nodes" + str(nodes)
-        for node in nodes:
-            if any(node is known_node for known_node in self.known_nodes):
-                self.__discover_node(node)
+        connected_nodes = self.shared_resource.get_connected_nodes_copy()
+        print "Connected nodes: " + str(connected_nodes)
 
-            print self.__get_from_node(node)
+        for conn_node in connected_nodes:
+            node = CoAP_Node.Node(ip=conn_node[0], port=conn_node[1])
 
-    def __discover_node(self, target):
-        response = self.client.discover()
-        #TODO parse response, put into Node() struct
-        return response
+            duplicate = False
+            for known_node in self.known_nodes:
+                if CoAP_Node.Node.is_same_node(node, known_node):
+                    known_node.set_alive()
+                    duplicate = True
+            if not duplicate:
+                node.try_discover()
+                self.known_nodes.append(node)
 
-    def __get_from_node(self, target):
-        response = self.client.get(self.default_resources["temperature"])
-        return response.payload
+        print "\nNode cnt = " + str(len(self.known_nodes))
+        for node in self.known_nodes:
+            print node.ip + " " + str(node.port) + ":" + str(node.resources)
+
+            if node.refresh_needed():
+                node.try_refresh()
 
     def stop(self):
         self.client.stop()
 
 
+#
+# MAIN
+#
 def main():
     server = CoAPServer(default_host, default_port)
     server_thread = ServerThread(server)
 
-    client = CoAPClient(default_host, default_port, shared_resource_i)
+    client = CoAPClient(shared_resource_i)
     client_thread = ClientThread(client)
 
     try:
@@ -94,20 +94,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# client = HelperClient(server=(target, COAP_DEFAULT_PORT))
-# response = client.discover()
-# resources = []
-#
-# for res in response.payload.split(','):
-# res = res.split(';')
-#     if len(res) >= 3:
-#         resources.append(ResourceStruct_t(res[0], res[1], res[2], res[3]))
-#
-# for res in resources:
-#     if res.path in used_resources:
-#         print "Node " + host + " resource " + res.path + " GET: "
-#         response = client.get(res.path)
-#         print response.payload
-#
-# client.stop()
