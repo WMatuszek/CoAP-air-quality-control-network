@@ -334,7 +334,7 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 	_SERIAL_CONSOLE.println(p);
 
 	char resp[50];
-	sprintf(resp, "Node:%d", (uint16_t)MAC0);
+	sprintf(resp, "Node:%d", (uint32_t)CHIPID);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
