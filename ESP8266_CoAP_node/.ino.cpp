@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-12-21 01:45:03
+//This file has been generated on 2017-12-29 03:11:33
 
 #include "Arduino.h"
 #include "CoAP_node.h"
@@ -32,6 +32,7 @@ uint16_t CoAP_NodeReportToServer() ;
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);
+void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer);
 
 

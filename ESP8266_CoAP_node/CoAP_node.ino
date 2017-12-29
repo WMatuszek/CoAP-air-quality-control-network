@@ -41,6 +41,7 @@ ConfigMsg configMsg;
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);
+void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int observer); // Stub, unused
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_response(coapPacket *packet, IPAddress ip, int port, int observer) {} // { _SERIAL_CONSOLE.println("RESP"); }
 
@@ -312,6 +313,19 @@ void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int o
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
 
+void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int observer){
+	_SERIAL_CONSOLE.print("Battery get callback: ");
+	char p[packet->payloadlen + 1];
+	memcpy(p, packet->payload, packet->payloadlen);
+	p[packet->payloadlen] = '\0';
+	_SERIAL_CONSOLE.println(p);
+
+	char resp[50];
+	sprintf(resp, "%d", GetBatteryStatus());
+
+	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
+}
+
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer){
 	_SERIAL_CONSOLE.print("Node info callback: ");
 	char p[packet->payloadlen + 1];
@@ -320,7 +334,7 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 	_SERIAL_CONSOLE.println(p);
 
 	char resp[50];
-	sprintf(resp, "{ \"ID\":%d, \"battery\"=%d }", (uint32_t)MAC0, GetBatteryStatus());
+	sprintf(resp, "Node:%d", (uint16_t)MAC0);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
