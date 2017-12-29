@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Node report page</title>
+    <style>
+    table, th, td {
+        border: 1px solid black;
+    }
+    </style>
+</head>
+<body>
+    <h1>Node information at {{server_ip}}:{{server_port}}</h1>
+
+    <table style="width:100%">
+        <TR>
+            <TD>Node information</TD>
+        </TR>
+        {% for node in node_data %}
+            <TR>
+                <TD>{{node['info']}}</TD>
+                {% for resource in node['data'] %}
+                <TD>{{resource.name}} = {{resource.value}}</TD>
+                {% endfor %}
+            </TR>
+        {% endfor %}
+    </table>
+
+    <br>
+    <form action="/refresh/" method="post">
+        <button name="refreshBtn" type="submit">Refresh</button>
+    </form>
+</body>
+</html>

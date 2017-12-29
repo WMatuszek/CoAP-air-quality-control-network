@@ -1,16 +1,31 @@
 __author__ = 'Witold'
 
 import threading
+import json
 from time import time
-from collections import namedtuple
 
 from coapthon.client.helperclient import HelperClient
 from defines import NODE_LIFETIME_SECONDS, NODE_DATA_REFRESH_INTERVAL_SECONDS
 
 
-class Node(object):
+class NodeResource(object):
+    def __init__(self, uri, name):
+        self.uri = uri
+        self.name = name
+        self.value = None
+        self.observed = False
 
-    ResourceStruct_t = namedtuple("ResourceStruct_t", "uri name rt ct")
+        self._last_update = 0
+
+    def update(self, val):
+        self.value = val
+        self._last_update = time()
+
+    def is_fresh(self, max_age):
+        return (time() - self._last_update) > max_age
+
+
+class Node(object):
 
     DISCOVER_TIMEOUT = 10
     REFRESH_TIMEOUT = 10
@@ -18,10 +33,10 @@ class Node(object):
     def __init__(self, ip, port, is_active=True):
         self.ip = ip
         self.port = port
+        self.info = "Node:" + self.ip
         self.active = is_active
-        self.coap_client = HelperClient(server=(ip, port))
-        self.resources = {}
-        # TODO named tuple with resource age
+        self.coap_client = None
+        self.resources = []
         self.discover_successful = False
 
         self._refresh_thread = None
@@ -30,14 +45,25 @@ class Node(object):
         self.__last_seen = time()
         self.__last_refresh = 0
 
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return (self.ip == other.ip) and (self.port == other.port)
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(self, other)
+
+    def __hash__(self):
+        return hash((self.ip, self.port))
+
     """
         Check for nodes with the same ip:port pair
     """
-    @staticmethod
-    def is_same_node(a, b):
-        if (a.ip == b.ip) and (a.port == b.port):
-            return True
-        return False
+    # @staticmethod
+    # def is_same_node(a, b):
+    #     if (a.ip == b.ip) and (a.port == b.port):
+    #         return True
+    #     return False
 
     """
         Get client object for given node
@@ -65,7 +91,7 @@ class Node(object):
     def is_refresh_done(self):
         if self._refresh_thread is not None:
             return not self._refresh_thread.is_alive()
-        return not self.refresh_needed()
+        return True
 
     """
         Try run refresh thread
@@ -97,57 +123,59 @@ class Node(object):
         self.__last_seen = time()
 
     """
-        Check if node data refresh needed, if discover successful
-    """
-    def refresh_needed(self):
-        # check if discover successful
-        if not self.discover_successful:
-            return False
-        # check if refresh thread already running
-        if self._refresh_thread is not None:
-            if self._refresh_thread.is_alive():
-                return False
-        # check if time since last refresh above max
-        if time() - self.__last_refresh > NODE_DATA_REFRESH_INTERVAL_SECONDS:
-            return True
-        return False
-
-    """
         Node refresh thread method
     """
     def _refresh(self):
-        for uri in self.resources:
-            self._debug("try refresh res=" + uri)
-            response = self.coap_client.get(uri, timeout=self.REFRESH_TIMEOUT)
-            self.resources[uri] = response.payload
-        self._refreshed()
+        from defines import refreshable_resources
+
+        self.coap_client = HelperClient(server=(self.ip, self.port))
+        refresh_cnt = 0
+        for res in self.resources:
+            if res.name in refreshable_resources:
+                if res.is_fresh(NODE_DATA_REFRESH_INTERVAL_SECONDS):
+                    self._debug("try refresh res=" + res.uri)
+                    response = self.coap_client.get(res.uri, timeout=self.REFRESH_TIMEOUT)
+                    res.update(response.payload)
+                    refresh_cnt += 1
+
+        if refresh_cnt:
+            self.coap_client.close()
 
     """
         Node discover resources thread method
     """
     def _discover(self):
-        from defines import refreshable_resources
+        from defines import known_resources, refreshable_resources
 
-        response = self.coap_client.discover(timeout=self.DISCOVER_TIMEOUT)  # TODO how to check timeout?
-        resources = []
+        self.coap_client = HelperClient(server=(self.ip, self.port))
+        response = self.coap_client.discover(timeout=self.DISCOVER_TIMEOUT)
         for resp in response.payload.split(','):
             resp = resp.split(';')
-            if len(resp) >= 3:
-                resources.append(self.ResourceStruct_t(resp[0], resp[1], resp[2], resp[3]))
-
-        for res in resources:
-            if res.name in refreshable_resources:
-                self._debug("add resource " + res.uri)
-                self.resources.update({res.uri[1:-1]: None})  # strip <>
+            # skip entries without name
+            if len(resp) < 2:
+                continue
+            discovered_res = NodeResource(resp[0][1:-1], resp[1])  # strip <>
+            # get node info resource
+            if discovered_res.name == known_resources["node_info"]:
+                self._debug("getting node info")
+                response = self.coap_client.get(discovered_res.uri, timeout=self.REFRESH_TIMEOUT)
+                self.info = response.payload
+                self._debug("received " + self.info)
+            # add resource if no ignored
+            if discovered_res.name in refreshable_resources:
+                self._debug("added resource " + discovered_res.name)
+                self.resources.append(discovered_res)
 
         self.discover_successful = True
+        self.coap_client.close()
+
 
     """
         Update refresh timer
     """
     def _refreshed(self):
         self.__last_refresh = time()
-        self.__last_seen = self.__last_refresh
+        self.__last_seen = time()
 
     def _debug(self, msg):
         print "Node " + self.ip + "/" + str(self.port) + ": " + msg
