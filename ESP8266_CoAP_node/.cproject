@@ -28,7 +28,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/esp8266/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP_CoAP}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping/src}&quot;"/>
 								</option>
@@ -45,7 +44,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/esp8266/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP_CoAP}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping/src}&quot;"/>
 								</option>
@@ -62,7 +60,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/esp8266/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266WiFi/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP_CoAP}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ESP8266_CoAP_node/libraries/ESP8266Ping/src}&quot;"/>
 								</option>

@@ -29,6 +29,8 @@ struct PMData_t {
 
 	bool toJsonString(char *buff, size_t maxLen){
 		char tmpBuff[50];
+		// #TODO remove
+		PM_1 += 1;
 		size_t len = sprintf(tmpBuff, "{ \"1\":%d, \"2.5\"=%d, \"10\"=%d }", PM_1, PM_2_5, PM_10);
 		if (maxLen >= len){
 			strcpy(buff, tmpBuff);

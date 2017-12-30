@@ -5,10 +5,10 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266Ping.h>
 
-#include <coap_server.h>
-#include <coap_client.h>
+#include "coap_server.h"
+//#include "coap_client.h"
 
-#include "QueueArray.h"
+//#include "QueueArray.h"
 
 #include "HKA5Controller.h"
 #include "BMP280Controller.h"
@@ -24,8 +24,6 @@ coapServer coap;
 /*
  * GLobal variables
  */
-//static Sensor_t observedSensor = Sensor_t::NONE;
-
 static HKA5::PMData_t Measure_PM = {0,0,0};
 static float Measure_press = 0;
 static float Measure_temp = 0;
@@ -43,7 +41,6 @@ void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int obse
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int observer); // Stub, unused
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer);
-void COAP_callback_response(coapPacket *packet, IPAddress ip, int port, int observer) {} // { _SERIAL_CONSOLE.println("RESP"); }
 
 void setup() {
 	yield();
@@ -113,7 +110,7 @@ void WiFiSetup(){
 void CoAPSetup(){
 	// CoAP config
 	_SERIAL_CONSOLE.println("CoAP config");
-	coap.server(COAP_callback_response, "response");
+	//coap.server(COAP_callback_response, "response");
 	coap.server(COAP_callback_PM, "pm");
 	coap.server(COAP_callback_pressure, "pressure");
 	coap.server(COAP_callback_temperature, "temperature");
@@ -273,13 +270,23 @@ uint16_t CoAP_NodeReportToServer() {
  */
 
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("PM get callback: ");
-	char p[packet->payloadlen + 1];
-	memcpy(p, packet->payload, packet->payloadlen);
-	p[packet->payloadlen] = '\0';
-	_SERIAL_CONSOLE.println(p);
+	static const uint8_t BUFF_SIZE = 50;
+	static bool flag = true;
+	static char buff1[BUFF_SIZE], buff2[BUFF_SIZE];
 
-	char resp[50];
+	if (!observer) {
+		_SERIAL_CONSOLE.print("PM get callback: ");
+		char p[packet->payloadlen + 1];
+		memcpy(p, packet->payload, packet->payloadlen);
+		p[packet->payloadlen] = '\0';
+		_SERIAL_CONSOLE.println(p);
+	}
+
+	char *resp = buff1;
+	if (flag)
+		resp = buff2;
+	flag = !flag;
+
 	Measure_PM.toJsonString(resp, 50);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
@@ -320,7 +327,7 @@ void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int obser
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[50];
+	char resp[10];
 	sprintf(resp, "%d", GetBatteryStatus());
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
@@ -333,7 +340,7 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[50];
+	char resp[20];
 	sprintf(resp, "Node:%d", (uint32_t)CHIPID);
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
