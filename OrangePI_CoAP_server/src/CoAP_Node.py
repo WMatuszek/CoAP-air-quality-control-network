@@ -64,13 +64,14 @@ class NodeResource(object):
         if self._observable:
             self._coap_client = HelperClient(server=self._server)
             self._coap_client.observe(self.uri, self._observe_callback)
+            self._to_log("start observe")
 
     def _observe_callback(self, response):
         self._last_observe_response = response
         self.update_value(response.payload)
 
     def _to_log(self, msg):
-        logger.info("Node " + str(self._server) + " res " + self.name + ": " + msg)
+        logger.info("Node=" + str(self._server) + " res=" + self.name + ": " + msg)
 
 
 class Node(object):
@@ -192,10 +193,11 @@ class Node(object):
             if name == defines.known_resources["node_info"]:
                 self._to_log("getting node info")
                 resp = coap_client.get(uri, timeout=self.NODE_INFO_TIMEOUT)
+                self._to_log("received " + str(self.info))
                 if resp.payload:
                     self.info = resp.payload
-                self._to_log("received " + self.info)
                 continue
+
             # Add resource if refreshable
             if name not in defines.ignored_resources:
                 refresh = name in defines.refreshable_resources
