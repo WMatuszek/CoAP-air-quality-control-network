@@ -2,7 +2,6 @@ __author__ = 'Witold'
 
 from threading import Thread
 
-
 class ServerThread(Thread):
 
     def __init__(self, CoAP_server):

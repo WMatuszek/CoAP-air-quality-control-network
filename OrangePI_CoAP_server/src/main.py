@@ -1,8 +1,4 @@
-import threading
 import time
-
-import coapthon.reverse_proxy.coap
-import coapthon.server.coap
 
 import CoAP_Node
 import HTTP_endpoint
@@ -10,61 +6,56 @@ from CoAP_report_server import CoAPServer
 from CoAP_reverse_proxy import CoAPRevProxyServer
 from CoAP_Server_thread import ServerThread
 from CoAP_Client_thread import ClientThread
-from resource_test import TestResource
 
-shared_resource_i = TestResource()
-
-
-"""
-    CoAP app main loop
-"""
 class CoAPClientApp():
+    """
+        CoAP app main loop
+    """
 
-    def __init__(self, report_serv, shared_res=None, rproxy=None):
-        self.known_nodes = []
+    def __init__(self, report_serv, rproxy=None):
+        self._known_nodes = []
 
-        self.report_server = report_serv
-        self.shared_resource = shared_res
-        self.rev_proxy = rproxy
-
-        if self.shared_resource is None and self.report_server is None:
-            raise RuntimeError
+        self._report_server = report_serv
+        self._rev_proxy = rproxy
 
     def loop(self):
-
-        connected_nodes = self.report_server.get_connected_nodes()
-        print "\nConnected nodes: " + str(connected_nodes)
-
+        connected_nodes = self._report_server.get_connected_nodes()
         # Check for newly connected nodes
         for conn_node in connected_nodes:
-            node = CoAP_Node.Node(ip=conn_node[0], port=conn_node[1])
-
+            # Check connected node for duplicate
+            ip = conn_node[0]
+            port = conn_node[1]
             duplicate = False
-            for known_node in self.known_nodes:
-                if node == known_node:
+            for known_node in self._known_nodes:
+                if (ip == known_node.ip) and (port == known_node.port):
                     known_node.set_alive()
                     duplicate = True
             if not duplicate:
+                # Add node to known nodes, discover resources, add to reverse proxy (if present)
+                node = CoAP_Node.Node(ip, port)
                 node.try_discover()
-                self.known_nodes.append(node)
-                # try add new node reverse proxy
-                if self.rev_proxy is not None:
-                    addr = node.ip + ":" + str(node.port)
-                    self.rev_proxy.add_proxied_node((addr, node.info))
+                self._known_nodes.append(node)
+                # Try add new node reverse proxy TODO wait for node info GET successful
+                if self._rev_proxy is not None:
+                    address = node.ip + ":" + str(node.port)
+                    self._rev_proxy.add_proxied_node((address, node.info))
 
-        # Print node data, refresh
-        print "\nNode cnt = " + str(len(self.known_nodes))
-        for node in self.known_nodes:
-            print node.ip + " " + str(node.port) + ":" + \
-                str([(res.name, res.value) for res in node.resources])
-            node.try_refresh()
+        self._refresh_nodes()
 
     def get_nodes(self):
-        return self.known_nodes
+        return self._known_nodes
 
     def stop(self):
-        self.client.stop()
+        for node in self._known_nodes:
+            node.stop_threads()
 
+    def _refresh_nodes(self):
+        print "\nNode cnt = " + str(len(self._known_nodes))
+        for node in self._known_nodes:
+            print node.ip + " " + str(node.port) + ":" + \
+                str([(res.name, res.value) for res in node.resources])
+            if node.discover_successful:
+                node.try_refresh()
 
 """
     MAIN
@@ -76,7 +67,7 @@ def main():
     rev_proxy_server = CoAPRevProxyServer(get_interface_ip(EXTERNAL_INTERFACE), DEFAULT_PORT)
     rev_proxy_thread = ServerThread(rev_proxy_server)
 
-    report_server = CoAPServer(get_interface_ip(INTERNAL_INTERFACE), DEFAULT_PORT, shared_resource_i)
+    report_server = CoAPServer(get_interface_ip(INTERNAL_INTERFACE), DEFAULT_PORT)
     server_thread = ServerThread(report_server)
 
     client = CoAPClientApp(rproxy=rev_proxy_server, report_serv=report_server)

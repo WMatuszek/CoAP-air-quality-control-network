@@ -34,15 +34,12 @@ logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 class CoAPServer(coapthon.server.coap.CoAP):
     shared_resource_uri = 'node_report/'
 
-    def __init__(self, host, port, shared_resource=None):
+    def __init__(self, host, port):
         print "Make server with ip/port: " + host + "/" + str(port)
 
         self._connected_nodes = set()
 
         coapthon.server.coap.CoAP.__init__(self, (host, port))
-
-        if shared_resource is not None:
-            self.add_resource(self.shared_resource_uri, shared_resource)
 
     def get_connected_nodes(self):
         return self._connected_nodes

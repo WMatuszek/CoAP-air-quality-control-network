@@ -19,6 +19,7 @@ class ClientThread(Thread):
         while not self.__stop.isSet():
             sleep(self.sleep_sec)
             self.client.loop()
+        self.client.stop()
 
     def stop(self):
         self.__stop.set()

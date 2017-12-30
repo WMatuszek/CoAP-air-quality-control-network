@@ -15,7 +15,7 @@ def install_coap_client_app_obj(client_obj):
 
 
 def parse_node_data():
-    from defines import refreshable_resources
+    from defines import ignored_resources
 
     nodes_tmp = coap_client_app_obj.get_nodes()
     nodes_info = []
@@ -25,7 +25,7 @@ def parse_node_data():
                                  (str(node.info) if node.info is not None else "UNKNOWN") \
                                  + " at " + node.ip + ":" + str(node.port)
         for res in node.resources:
-            if res.name in refreshable_resources:
+            if res.name not in ignored_resources:
                 node_info_dict['data'].append(res)
         nodes_info.append(node_info_dict)
 
