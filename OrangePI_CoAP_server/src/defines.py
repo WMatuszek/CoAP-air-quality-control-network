@@ -12,8 +12,9 @@ NODE_LIFETIME_SECONDS = 30
 NODE_DATA_REFRESH_INTERVAL_SECONDS = 30
 
 '''
-    Known resources, identified by 'if' field in core link format
+    Known resources, identified by 'rt' field in core link format
 '''
+resource_name_attribute = 'rt'
 known_resources = {
     "response": "response",
     "temperature": "temperature",
@@ -22,11 +23,11 @@ known_resources = {
     "air_quality": "pm",
     "battery_state": "battery"
 }
-# TODO air_quality as observed
+observed_resources = [known_resources["air_quality"]]
 refreshable_resources = [known_resources["pressure"],
-                         known_resources["air_quality"],
+                         known_resources["temperature"],
                          known_resources["battery_state"]]
+
 info_resources = [known_resources["node_info"]]
-observed_resources = [known_resources["temperature"]]
 ignored_resources = [known_resources["response"]]
 

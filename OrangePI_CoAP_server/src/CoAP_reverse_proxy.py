@@ -64,7 +64,7 @@ class CoAPRevProxyServer(CoAP):
         :param base_path: the base path used to create child resources discovered on the remote server
         :param remote_server: the (ip, port) of the remote server
         """
-        from defines import ignored_resources
+        from defines import ignored_resources, resource_name_attribute
 
         while len(link_format) > 0:
             pattern = "<([^>]*)>;"
@@ -88,9 +88,9 @@ class CoAPRevProxyServer(CoAP):
                 link_format = link_format[result.end(0) + 1:]
             # TODO handle observing
 
-            # filter resources in ignored_resources, using 'if' field
-            if 'if' in dict_att.keys():
-                if_val = dict_att['if']
+            # filter resources in ignored_resources
+            if resource_name_attribute in dict_att.keys():
+                if_val = dict_att[resource_name_attribute]
                 if_val = if_val[1:-1] if if_val.startswith('\"') else if_val
                 if if_val in ignored_resources:
                     logger.info("Ignoring res=" + str(path) + " at " + str(remote_server))

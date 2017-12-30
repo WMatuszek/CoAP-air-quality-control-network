@@ -44,7 +44,7 @@ class NodeResource(object):
 
     def __del__(self):
         if self._coap_client is not None:
-            self._coap_client.cancel_observe(self._last_observe_response, False)
+            self._coap_client.cancel_observe(self._last_observe_response, True)
 
     def update_value(self, val):
         self.value = val
@@ -91,7 +91,6 @@ class Node(object):
         self.discover_successful = False
 
         self.resources = []
-        #self.coap_client = HelperClient(server=(self.ip, self.port))
 
         self._refresh_thread = None
         self._discover_thread = None
@@ -239,7 +238,8 @@ class Node(object):
 
     @staticmethod
     def _get_name_from_attributes(attributes):
+        from defines import resource_name_attribute
         for attr in attributes:
-            if attr.startswith('if='):
+            if attr.startswith(resource_name_attribute):
                 return attr[attr.find('\"') + 1:attr.rfind('\"')]
         return "Unknown"
