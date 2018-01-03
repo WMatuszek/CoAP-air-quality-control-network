@@ -46,12 +46,15 @@ class CoAPRevProxyServer(CoAP):
         self._known_nodes = []
         self._candidate_nodes = []
 
+        self._candidate_nodes_mutex = threading.Lock()
+
     def add_proxied_node(self, node_info):
         """
         Add node to proxy.
         :param node_info: ("IP:port",name) tuple identifying node
         """
-        self._candidate_nodes.append(node_info)
+        with self._candidate_nodes_mutex:
+            self._candidate_nodes.append(node_info)
 
     def parse_core_link_format(self, link_format, base_path, remote_server):
         """
@@ -119,12 +122,13 @@ class CoAPRevProxyServer(CoAP):
         while not self.stopped.isSet():
 
             # try add node to proxy
-            for node in self._candidate_nodes:
-                if node not in self._known_nodes:
-                    logger.info("discover node " + str(node))
-                    self.discover_remote(node[0], node[1])
-                    self._known_nodes.append(node)
-            del self._candidate_nodes[:]
+            with self._candidate_nodes_mutex:
+                for node in self._candidate_nodes:
+                    if node not in self._known_nodes:
+                        logger.info("discover node " + str(node))
+                        self.discover_remote(node[0], node[1])
+                        self._known_nodes.append(node)
+                del self._candidate_nodes[:]
 
             try:
                 data, client_address = self._socket.recvfrom(4096)

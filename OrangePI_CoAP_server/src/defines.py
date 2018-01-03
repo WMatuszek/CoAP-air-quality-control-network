@@ -19,7 +19,7 @@ known_resources = {
     "response": "response",
     "temperature": "temperature",
     "pressure": "pressure",
-    "node_info": "info",
+    "node_info": "sname",
     "air_quality": "pm",
     "battery_state": "battery"
 }

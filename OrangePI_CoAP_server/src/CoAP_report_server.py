@@ -38,11 +38,15 @@ class CoAPServer(coapthon.server.coap.CoAP):
         print "Make server with ip/port: " + host + "/" + str(port)
 
         self._connected_nodes = set()
+        self._connected_nodes_mutex = threading.Lock()
 
         coapthon.server.coap.CoAP.__init__(self, (host, port))
 
     def get_connected_nodes(self):
-        return self._connected_nodes
+        import copy
+        with self._connected_nodes_mutex:
+            nodes = copy.copy(self._connected_nodes_mutex)
+        return nodes
 
     def listen(self, timeout=10):
         import socket
@@ -61,7 +65,8 @@ class CoAPServer(coapthon.server.coap.CoAP):
 
                 # add client_address to connected nodes list if not duplicate
                 if len(client_address) == 2:
-                    self._connected_nodes.add(client_address)
+                    with self._connected_nodes_mutex:
+                        self._connected_nodes.add(client_address)
 
             except socket.timeout:
                 continue
