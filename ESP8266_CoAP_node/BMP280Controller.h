@@ -11,6 +11,8 @@
 #include "Arduino.h"
 #include "Wire.h"
 
+#include "SensorInterface.h"
+
 namespace BMP280 {
 
 const uint32_t SPI_BUS_SPEED = 500000;
@@ -67,7 +69,7 @@ struct CalibrationData {
 };
 
 
-class BMP280Controller {
+class BMP280Controller : public SensorInterface {
 private:
 	TwoWire *bus_I2C;
 
@@ -84,7 +86,6 @@ public:
     float readAltitude(float seaLevelhPa = 1013.25);
 
 private:
-
     void readCoefficients(void);
     //uint8_t spixfer(uint8_t x);
 
@@ -96,8 +97,11 @@ private:
     uint16_t  	read16_LE(byte reg); // little endian
     int16_t   	readS16_LE(byte reg); // little endian
 
-//    void 		select(void) { digitalWrite(pin_cs, LOW); }
-//    void 		deselect(void) { digitalWrite(pin_cs, HIGH); }
+private:
+	bool setOn(void) { return true; }
+	bool setOff(void) { return true; }
+	bool setModeContinous() { return true; }
+	bool setModeOnDemand() { return true; }
 };
 
 } /* namespace BMP280 */

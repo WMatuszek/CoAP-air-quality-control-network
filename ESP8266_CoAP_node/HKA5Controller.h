@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <Arduino.h>
 
+#include "SensorInterface.h"
+
 namespace HKA5 {
 
 struct PMData_t {
@@ -24,18 +26,6 @@ struct PMData_t {
 		if ((PM_1 > other->PM_1 ? PM_1 - other->PM_1 : other->PM_1 - PM_1) > min_delta) return true;
 		if ((PM_2_5 > other->PM_2_5 ? PM_2_5 - other->PM_2_5 : other->PM_2_5 - PM_2_5) > min_delta) return true;
 		if ((PM_10 > other->PM_10 ? PM_10 - other->PM_10 : other->PM_10 - PM_10) > min_delta) return true;
-		return false;
-	}
-
-	bool toJsonString(char *buff, size_t maxLen){
-		char tmpBuff[50];
-		// #TODO remove
-		PM_1 += 1;
-		size_t len = sprintf(tmpBuff, "{ \"1\":%d, \"2.5\"=%d, \"10\"=%d }", PM_1, PM_2_5, PM_10);
-		if (maxLen >= len){
-			strcpy(buff, tmpBuff);
-			return true;
-		}
 		return false;
 	}
 };
@@ -54,17 +44,17 @@ namespace MSG {
 	const uint8_t PM_10_LSB = 8;
 }
 
-class HKA5Controller {
+class HKA5Controller : public SensorInterface {
 
 protected:
 
-	uint8_t *msg;
+	uint8_t *msg = nullptr;
 
 	uint8_t pin_sleep_ctrl;
 
 public:
-	HKA5Controller();
-	virtual ~HKA5Controller();
+	HKA5Controller(uint8_t pin_sleep) : SensorInterface(Sensor_t::AIRQ), pin_sleep_ctrl(pin_sleep) {}
+	virtual ~HKA5Controller() {}
 
 	uint8_t *getMessagePtr(void) { return msg; }
 	void attachMessagePtr(uint8_t *msgPtr){ msg = msgPtr; }
@@ -89,9 +79,12 @@ public:
 		return ((uint16_t)msb << 8) | lsb;
 	}
 
-	void sleep(void) {} // set pin high
-	void wakeUp(void) {} // set pin low
-};
+private:
+	bool setOn(void) { digitalWrite(pin_sleep_ctrl, HIGH); return true; } // set pin high
+	bool setOff(void) { digitalWrite(pin_sleep_ctrl, LOW); return true; } // set pin low
+	bool setModeContinous() { return true; }
+	bool setModeOnDemand() { return true; }
+ };
 
 } /* namespace HKA5 */
 

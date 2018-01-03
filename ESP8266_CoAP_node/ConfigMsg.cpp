@@ -11,7 +11,7 @@
 #include "Arduino.h"
 
 ConfigMsg::ConfigMsg() {
-	for (int i=0; i<ConfigMsg::TOKEN_CNT; ++i)
+	for (int i=0; i<ConfigMsg::NUM_OF_TOKENS; ++i)
 		tokens[i] = nullptr;
 }
 
@@ -110,5 +110,5 @@ bool ConfigMsg::tokenCountCorrect() {
 		sepCnt += 1;
 		tmp = strchr(tmp+1, ConfigMsg::SEPARATOR);
 	}
-	return (sepCnt == ConfigMsg::TOKEN_CNT);
+	return (sepCnt == ConfigMsg::NUM_OF_TOKENS);
 }

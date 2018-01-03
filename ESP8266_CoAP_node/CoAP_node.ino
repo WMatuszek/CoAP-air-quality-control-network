@@ -5,17 +5,14 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266Ping.h>
 
-#include "coap_server.h"
-//#include "coap_client.h"
+#include <ArduinoJson-v5.12.0.hpp>
 
-//#include "QueueArray.h"
+#include "coap_server.h"
 
 #include "HKA5Controller.h"
 #include "BMP280Controller.h"
 #include "ConfigMsg.h"
 
-static char ssid[WIFI_CRED_BUFFER_SIZE]			= "OpiAP";
-static char password[WIFI_CRED_BUFFER_SIZE] 	= "herpderp";
 
 static uint8_t HKA5_msgBuffer[HKA5::MSG::LENGTH];
 
@@ -24,12 +21,15 @@ coapServer coap;
 /*
  * GLobal variables
  */
+
+static NodeConfig NodeConfig;
+
 static HKA5::PMData_t Measure_PM = {0,0,0};
 static float Measure_press = 0;
 static float Measure_temp = 0;
 
 BMP280::BMP280Controller BMP280Ctrl(&Wire);
-HKA5::HKA5Controller HKA5Ctrl;
+HKA5::HKA5Controller HKA5Ctrl(HKA5_POWER_CTRL_PIN);
 
 ConfigMsg configMsg;
 
@@ -41,6 +41,7 @@ void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int obse
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer);
 void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int observer); // Stub, unused
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer);
+void COAP_callback_sleepCycle(coapPacket *packet, IPAddress ip, int port, int observer);
 
 void setup() {
 	yield();
@@ -97,7 +98,7 @@ void WiFiSetup(){
 	WiFi.persistent(true);
 	WiFi.mode(WiFiMode_t::WIFI_STA);
 	WiFi.setSleepMode(WiFiSleepType_t::WIFI_NONE_SLEEP);
-	WiFi.begin(ssid, password);
+	WiFi.begin(NodeConfig.ssid, NodeConfig.password);
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500); yield();
 		Serial.print(".");
@@ -114,7 +115,8 @@ void CoAPSetup(){
 	coap.server(COAP_callback_PM, "pm");
 	coap.server(COAP_callback_pressure, "pressure");
 	coap.server(COAP_callback_temperature, "temperature");
-	coap.server(COAP_callback_nodeInfo, "info");
+	coap.server(COAP_callback_nodeInfo, "sname");
+	coap.server(COAP_callback_sleepCycle, "sleepcycle");
 	coap.start();
 }
 
@@ -145,7 +147,9 @@ void loop() {
 		_SERIAL_CONSOLE.println("Report to server");
 	}
 
-	USARTSerialInputCheck(); 							// Read either HK-A5 output or config msg
+
+
+	USARTSerialInputCheck();							// Read either HK-A5 output or config msg
 	Measure_temp = BMP280Ctrl.readTemperature();		// Read temperature
 	Measure_press = BMP280Ctrl.readPressure();			// Read pressure
 
@@ -187,10 +191,10 @@ bool ReadNodeConfigMsg(void){
 	configMsg.parseConfigMsg();
 	if (configMsg.isValid()){
 		_SERIAL_CONSOLE.println("---Config msg valid:");
-		strcpy(ssid, configMsg.getSSID());
-		strcpy(password, configMsg.getPW());
-		_SERIAL_CONSOLE.println(ssid);
-		_SERIAL_CONSOLE.println(password);
+		strcpy(NodeConfig.ssid, configMsg.getSSID());
+		strcpy(NodeConfig.password, configMsg.getPW());
+		_SERIAL_CONSOLE.println(NodeConfig.ssid);
+		_SERIAL_CONSOLE.println(NodeConfig.password);
 		return true;
 	}
 	_SERIAL_CONSOLE.println("---Config msg invalid!");
@@ -257,11 +261,6 @@ uint16_t CoAP_NodeReportToServer() {
 	packet.optionnum = 0;
 	packet.messageid = rand();
 
-//	packet.options[packet.optionnum].buffer = (uint8_t *)SERVER_REPORT_URI;
-//	packet.options[packet.optionnum].length = strlen(SERVER_REPORT_URI);
-//	packet.options[packet.optionnum].number = COAP_OPTION_NUMBER::COAP_URI_PATH;
-//	packet.optionnum++;
-
 	return coap.sendPacket(&packet, servIP, COAP_DEFAULT_PORT);
 }
 
@@ -270,15 +269,15 @@ uint16_t CoAP_NodeReportToServer() {
  */
 
 void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
-	static const uint8_t BUFF_SIZE = 50;
+	const size_t respBufferSize = 50;
 	static bool flag = true;
-	static char buff1[BUFF_SIZE], buff2[BUFF_SIZE];
+	static char buff1[respBufferSize], buff2[respBufferSize];
 
+	_SERIAL_CONSOLE.print("PM get callback: ");
+	char p[packet->payloadlen + 1];
+	memcpy(p, packet->payload, packet->payloadlen);
+	p[packet->payloadlen] = '\0';
 	if (!observer) {
-		_SERIAL_CONSOLE.print("PM get callback: ");
-		char p[packet->payloadlen + 1];
-		memcpy(p, packet->payload, packet->payloadlen);
-		p[packet->payloadlen] = '\0';
 		_SERIAL_CONSOLE.println(p);
 	}
 
@@ -287,7 +286,36 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 		resp = buff2;
 	flag = !flag;
 
-	Measure_PM.toJsonString(resp, 50);
+	if (packet->code_() == COAP_METHOD::COAP_GET) {
+		using namespace ArduinoJson;
+		const size_t bufferSize = JSON_OBJECT_SIZE(3);
+		DynamicJsonBuffer jsonBuffer(bufferSize);
+
+		JsonObject& root = jsonBuffer.createObject();
+		root["pm1"] = Measure_PM.PM_1;
+		root["pm2_5"] = Measure_PM.PM_2_5;
+		root["pm10"] = Measure_PM.PM_10;
+
+		root.printTo(resp, respBufferSize);
+	}
+	if (packet->code_() == COAP_METHOD::COAP_POST) {
+		using namespace ArduinoJson;
+		const size_t bufferSize = JSON_OBJECT_SIZE(2) + 20;
+		DynamicJsonBuffer jsonBuffer(bufferSize);
+
+		JsonObject& root = jsonBuffer.parseObject(p);
+
+		if (root.success()) {
+			uint8_t state = root["on"];
+			uint8_t mode = root["mode"];
+			HKA5Ctrl.setState((SensorState_t)state);
+			HKA5Ctrl.setMeasureMode((MeasureMode_t)mode);
+			strcpy(resp, RESPONSE_OK);
+		}
+		else {
+			strcpy(resp, RESPONSE_FAIL);
+		}
+	}
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
@@ -340,8 +368,58 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[20];
-	sprintf(resp, "Node:%d", (uint32_t)CHIPID);
+	char resp[50];
+	if (packet->code_() == COAP_METHOD::COAP_GET) {
+		sprintf(resp, "Node:%s", NodeConfig.nodeName);
+	}
+	if (packet->code_() == COAP_METHOD::COAP_POST) {
+		strcpy(NodeConfig.nodeName, p);
+		strcpy(resp, RESPONSE_OK);
+	}
+
+	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
+}
+
+void COAP_callback_sleepCycle(coapPacket *packet, IPAddress ip, int port, int observer){
+	_SERIAL_CONSOLE.print("Node info callback: ");
+	char p[packet->payloadlen + 1];
+	memcpy(p, packet->payload, packet->payloadlen);
+	p[packet->payloadlen] = '\0';
+	_SERIAL_CONSOLE.println(p);
+
+	const size_t respBufferSize = 50;
+	char resp[respBufferSize];
+
+	if (packet->code_() == COAP_METHOD::COAP_GET) {
+		using namespace ArduinoJson;
+		const size_t bufferSize = JSON_OBJECT_SIZE(3);
+		DynamicJsonBuffer jsonBuffer(bufferSize);
+
+		JsonObject& root = jsonBuffer.createObject();
+		root["on"] = NodeConfig.sleepCycleActive;
+		root["sleep"] = NodeConfig.sleepTime_s;
+		root["measure"] = NodeConfig.measureTime_s;
+
+		root.printTo(resp, respBufferSize);
+	}
+
+	if (packet->code_() == COAP_METHOD::COAP_POST) {
+		using namespace ArduinoJson;
+		const size_t bufferSize = JSON_OBJECT_SIZE(3) + 40;
+		DynamicJsonBuffer jsonBuffer(bufferSize);
+
+		JsonObject& root = jsonBuffer.parseObject(p);
+
+		if (root.success()) {
+			NodeConfig.sleepCycleActive = root["on"];
+			NodeConfig.sleepTime_s = root["sleep"];
+			NodeConfig.measureTime_s = root["measure"];
+			strcpy(resp, RESPONSE_OK);
+		}
+		else {
+			strcpy(resp, RESPONSE_FAIL);
+		}
+	}
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }

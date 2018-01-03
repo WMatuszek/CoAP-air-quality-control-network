@@ -10,7 +10,7 @@
 namespace BMP280 {
 
 BMP280Controller::BMP280Controller(TwoWire *i2c)
-	: bus_I2C(i2c) {}
+	: SensorInterface(Sensor_t::TEMP_PRESS), bus_I2C(i2c) {}
 
 BMP280Controller::~BMP280Controller() {}
 
