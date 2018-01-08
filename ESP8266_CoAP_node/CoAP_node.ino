@@ -23,10 +23,13 @@ coapServer coap;
  */
 
 static NodeConfig NodeConfig;
+static bool NodeConfigChanged = false;
+static uint32_t nextSleep = 0;
+static uint32_t nextServerReport = 0;
 
-static HKA5::PMData_t Measure_PM = {0,0,0};
-static float Measure_press = 0;
-static float Measure_temp = 0;
+static HKA5::PMData_t Measured_PM = {0,0,0};
+static float Measured_pressure = 0;
+static float Measured_temperature = 0;
 
 BMP280::BMP280Controller BMP280Ctrl(&Wire);
 HKA5::HKA5Controller HKA5Ctrl(HKA5_POWER_CTRL_PIN);
@@ -50,10 +53,11 @@ void setup() {
 	digitalWrite(LED_BUILTIN, HIGH);
 
 	delay(2000);
-
 	yield();
-
 	_SERIAL_CONSOLE.begin(HKA5::USART_BAUD_RATE);
+
+	NodeConfig.setDefault();
+	NodeConfig::LoadFromEEPROM(&NodeConfig);
 
 	SensorsSetup();
 
@@ -66,6 +70,7 @@ void setup() {
 #endif
 
 	CoAP_NodeReportToServer();
+	nextServerReport = millis() + SEC_TO_MS(SERVER_REPORT_INTERVAL_SEC);
 
 	_SERIAL_CONSOLE.println("--- Config done");
 
@@ -99,9 +104,14 @@ void WiFiSetup(){
 	WiFi.mode(WiFiMode_t::WIFI_STA);
 	WiFi.setSleepMode(WiFiSleepType_t::WIFI_NONE_SLEEP);
 	WiFi.begin(NodeConfig.ssid, NodeConfig.password);
-	while (WiFi.status() != WL_CONNECTED) {
+	uint32_t connectWaitStop = millis() + SEC_TO_MS(WIFI_CONNECT_WAIT_SEC);
+	while (WiFi.status() != WL_CONNECTED ) {
 		delay(500); yield();
 		Serial.print(".");
+		if (millis() > connectWaitStop) {
+			_SERIAL_CONSOLE.println(" TIMEOUT! Will try again.");
+			return;
+		}
 	}
 	_SERIAL_CONSOLE.println(" CONNECTED! Local / gateway IP:");
 	_SERIAL_CONSOLE.println(WiFi.localIP());
@@ -126,34 +136,55 @@ void loop() {
 
 	yield();
 	coap.loop();
+#ifndef NO_LED_BLINK
 	digitalWrite(LED_BUILTIN, HIGH);
+#endif
 	delay(500);
 	yield();
 	coap.loop();
+#ifndef NO_LED_BLINK
 	digitalWrite(LED_BUILTIN, LOW);
+#endif
 	delay(500);
 	yield();
 
+	if (NodeConfig.sleepCycleActive && millis() > nextSleep) {
+		_SERIAL_CONSOLE.println("Sleep\nzzZzzZz");
+		sleepFor(NodeConfig.sleepTime_s);
+		nextSleep = millis() + SEC_TO_MS(NodeConfig.measureTime_s);
+		_SERIAL_CONSOLE.println("Wake");
+	}
+
 	if (WiFi.isConnected() == false){
-		_SERIAL_CONSOLE.println("WIFI disconnected, attempting to reconnect");
+		_SERIAL_CONSOLE.println("WIFI dc'd, try reconnect");
 		WiFi.reconnect();
 	}
-//	if (!Ping.ping(WiFi.gatewayIP(), 1)){
-//		_SERIAL_CONSOLE.println("Ping fail!");
-//	}
 
-	if (mainLoopCount % REPORT_LOOP == 0) {
+	if (millis() > nextServerReport) {
 		CoAP_NodeReportToServer();
+		nextServerReport = millis() + SEC_TO_MS(SERVER_REPORT_INTERVAL_SEC);
 		_SERIAL_CONSOLE.println("Report to server");
 	}
 
+	if (NodeConfigChanged) {
+		NodeConfig::SaveToEEPROM(&NodeConfig);
+		NodeConfigChanged = false;
+	}
 
+	USARTSerialInputCheck();										// Read either HK-A5 output or config msg
 
-	USARTSerialInputCheck();							// Read either HK-A5 output or config msg
-	Measure_temp = BMP280Ctrl.readTemperature();		// Read temperature
-	Measure_press = BMP280Ctrl.readPressure();			// Read pressure
+	if (BMP280Ctrl.isModeContinous(SType_t::TEMP))					// BMP280 read if in continous mode
+		Measured_temperature = BMP280Ctrl.measureTemperature();		// Read temperature
+	if (BMP280Ctrl.isModeContinous(SType_t::PRESS))
+		Measured_pressure = BMP280Ctrl.measurePressure();			// Read pressure
+
 
 	++mainLoopCount;
+}
+
+void sleepFor(uint16_t sleep_s) {
+	// #TODO this is a placeholder
+	// ESP.deepSleep(SEC_TO_US(sleep_s)); <-- does not wake up
 }
 
 /*
@@ -191,8 +222,11 @@ bool ReadNodeConfigMsg(void){
 	configMsg.parseConfigMsg();
 	if (configMsg.isValid()){
 		_SERIAL_CONSOLE.println("---Config msg valid:");
+		strcpy(NodeConfig.nodeName, configMsg.getNodeName());
 		strcpy(NodeConfig.ssid, configMsg.getSSID());
 		strcpy(NodeConfig.password, configMsg.getPW());
+		NodeConfigChanged = true;
+		_SERIAL_CONSOLE.println(NodeConfig.nodeName);
 		_SERIAL_CONSOLE.println(NodeConfig.ssid);
 		_SERIAL_CONSOLE.println(NodeConfig.password);
 		return true;
@@ -204,7 +238,7 @@ bool ReadNodeConfigMsg(void){
 bool ReadPM(void) {
 	if (HKA5::MSG::LENGTH
 			== _SERIAL_CONSOLE.readBytes(HKA5_msgBuffer, HKA5::MSG::LENGTH)) {
-		Measure_PM = HKA5Ctrl.getPM();
+		Measured_PM = HKA5Ctrl.getPM();
 		return true;
 	}
 	return false;
@@ -213,11 +247,11 @@ bool ReadPM(void) {
 void PrintPM(void){
 	_SERIAL_CONSOLE.println("PM values [ug/m3]:");
 	_SERIAL_CONSOLE.print("PM 1 = ");
-	_SERIAL_CONSOLE.println(Measure_PM.PM_1);
+	_SERIAL_CONSOLE.println(Measured_PM.PM_1);
 	_SERIAL_CONSOLE.print("PM 2.5 = ");
-	_SERIAL_CONSOLE.println(Measure_PM.PM_2_5);
+	_SERIAL_CONSOLE.println(Measured_PM.PM_2_5);
 	_SERIAL_CONSOLE.print("PM 10 = ");
-	_SERIAL_CONSOLE.println(Measure_PM.PM_10);
+	_SERIAL_CONSOLE.println(Measured_PM.PM_10);
 }
 
 uint32_t GetBatteryStatus(void) {
@@ -273,11 +307,11 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 	static bool flag = true;
 	static char buff1[respBufferSize], buff2[respBufferSize];
 
-	_SERIAL_CONSOLE.print("PM get callback: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
 	if (!observer) {
+		_SERIAL_CONSOLE.print("PM get callback, payload: ");
 		_SERIAL_CONSOLE.println(p);
 	}
 
@@ -286,15 +320,18 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 		resp = buff2;
 	flag = !flag;
 
+	if (packet->code_() != COAP_METHOD::COAP_GET && observer) {
+		return; // POST + OBSERVE bug in library
+	}
 	if (packet->code_() == COAP_METHOD::COAP_GET) {
 		using namespace ArduinoJson;
 		const size_t bufferSize = JSON_OBJECT_SIZE(3);
 		DynamicJsonBuffer jsonBuffer(bufferSize);
 
 		JsonObject& root = jsonBuffer.createObject();
-		root["pm1"] = Measure_PM.PM_1;
-		root["pm2_5"] = Measure_PM.PM_2_5;
-		root["pm10"] = Measure_PM.PM_10;
+		root["pm1"] = Measured_PM.PM_1;
+		root["pm2_5"] = Measured_PM.PM_2_5;
+		root["pm10"] = Measured_PM.PM_10;
 
 		root.printTo(resp, respBufferSize);
 	}
@@ -308,8 +345,9 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 		if (root.success()) {
 			uint8_t state = root["on"];
 			uint8_t mode = root["mode"];
-			HKA5Ctrl.setState((SensorState_t)state);
-			HKA5Ctrl.setMeasureMode((MeasureMode_t)mode);
+			HKA5Ctrl.setState(SType_t::AIRQ, (SState_t)state);
+			HKA5Ctrl.setMeasureMode(SType_t::AIRQ, (SMeasureMode_t)mode);
+			_SERIAL_CONSOLE.println("PM sensor settings updated");
 			strcpy(resp, RESPONSE_OK);
 		}
 		else {
@@ -321,35 +359,91 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 }
 
 void COAP_callback_pressure(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("Pressure get callback: ");
+	_SERIAL_CONSOLE.print("Pressure get callback, payload: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[10];
-	dtostrf(Measure_press, 5, 2, resp);
-	resp[9] = '\0';
+	char resp[30];
+	if (packet->code_() == COAP_METHOD::COAP_GET) {
+		if (!BMP280Ctrl.isSensorOn(SType_t::PRESS))
+			strcpy(resp, "OFF");
+		else {
+			if (BMP280Ctrl.isModeContinous(SType_t::PRESS))
+				dtostrf(Measured_pressure, 5, 2, resp); // Use existing value
+			else
+				dtostrf(BMP280Ctrl.measurePressure(), 5, 2, resp); // Measure on demand
+		}
+	}
+	if (packet->code_() == COAP_METHOD::COAP_POST) {
+		using namespace ArduinoJson;
+		const size_t bufferSize = JSON_OBJECT_SIZE(2) + 20;
+		DynamicJsonBuffer jsonBuffer(bufferSize);
+
+		JsonObject& root = jsonBuffer.parseObject(p);
+
+		if (root.success()) {
+			uint8_t state = root["on"];
+			uint8_t mode = root["mode"];
+			BMP280Ctrl.setState(SType_t::PRESS, (SState_t)state);
+			BMP280Ctrl.setMeasureMode(SType_t::PRESS, (SMeasureMode_t)mode);
+			_SERIAL_CONSOLE.println("Press sensor settings updated");
+			strcpy(resp, RESPONSE_OK);
+		}
+		else {
+			_SERIAL_CONSOLE.println("Press sensor settings update fail");
+			strcpy(resp, RESPONSE_FAIL);
+		}
+	}
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
 
 void COAP_callback_temperature(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("Temperature get callback: ");
+	_SERIAL_CONSOLE.print("Temperature get callback, payload: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
 	_SERIAL_CONSOLE.println(p);
 
-	char resp[10];
-	dtostrf(Measure_temp, 3, 2, resp);
-	resp[9] = '\0';
+	char resp[30];
+	if (packet->code_() == COAP_METHOD::COAP_GET) {
+		if (!BMP280Ctrl.isSensorOn(SType_t::TEMP))
+			strcpy(resp, "OFF");
+		else {
+			if (BMP280Ctrl.isModeContinous(SType_t::TEMP))
+				dtostrf(Measured_temperature, 3, 2, resp); // Use existing value
+			else
+				dtostrf(BMP280Ctrl.measureTemperature(), 3, 2, resp); // Measure on demand
+		}
+	}
+	if (packet->code_() == COAP_METHOD::COAP_POST) {
+		using namespace ArduinoJson;
+		const size_t bufferSize = JSON_OBJECT_SIZE(2) + 20;
+		DynamicJsonBuffer jsonBuffer(bufferSize);
+
+		JsonObject& root = jsonBuffer.parseObject(p);
+
+		if (root.success()) {
+			uint8_t state = root["on"];
+			uint8_t mode = root["mode"];
+			BMP280Ctrl.setState(SType_t::TEMP, (SState_t)state);
+			BMP280Ctrl.setMeasureMode(SType_t::TEMP, (SMeasureMode_t)mode);
+			_SERIAL_CONSOLE.println("Temp sensor settings updated");
+			strcpy(resp, RESPONSE_OK);
+		}
+		else {
+			_SERIAL_CONSOLE.println("Temp sensor settings update fail");
+			strcpy(resp, RESPONSE_FAIL);
+		}
+	}
 
 	observer ? coap.sendResponse(resp) : coap.sendResponse(ip, port, resp);
 }
 
 void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("Battery get callback: ");
+	_SERIAL_CONSOLE.print("Battery get callback, payload: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
@@ -362,7 +456,7 @@ void COAP_callback_battery(coapPacket *packet, IPAddress ip, int port, int obser
 }
 
 void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("Node info callback: ");
+	_SERIAL_CONSOLE.print("Node info callback, payload: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
@@ -374,6 +468,8 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 	}
 	if (packet->code_() == COAP_METHOD::COAP_POST) {
 		strcpy(NodeConfig.nodeName, p);
+		NodeConfigChanged = true;
+		_SERIAL_CONSOLE.println("Station name updated");
 		strcpy(resp, RESPONSE_OK);
 	}
 
@@ -381,7 +477,7 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 }
 
 void COAP_callback_sleepCycle(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("Node info callback: ");
+	_SERIAL_CONSOLE.print("Node info callback, payload: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';
@@ -399,7 +495,6 @@ void COAP_callback_sleepCycle(coapPacket *packet, IPAddress ip, int port, int ob
 		root["on"] = NodeConfig.sleepCycleActive;
 		root["sleep"] = NodeConfig.sleepTime_s;
 		root["measure"] = NodeConfig.measureTime_s;
-
 		root.printTo(resp, respBufferSize);
 	}
 
@@ -414,9 +509,12 @@ void COAP_callback_sleepCycle(coapPacket *packet, IPAddress ip, int port, int ob
 			NodeConfig.sleepCycleActive = root["on"];
 			NodeConfig.sleepTime_s = root["sleep"];
 			NodeConfig.measureTime_s = root["measure"];
+			NodeConfigChanged = true;
+			_SERIAL_CONSOLE.println("Sleep cycle updated");
 			strcpy(resp, RESPONSE_OK);
 		}
 		else {
+			_SERIAL_CONSOLE.println("Sleep cycle update fail");
 			strcpy(resp, RESPONSE_FAIL);
 		}
 	}

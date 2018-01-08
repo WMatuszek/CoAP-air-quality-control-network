@@ -13,9 +13,13 @@
 #define NODE_NAME_BUFFER_SIZE			20
 #define WIFI_CRED_BUFFER_SIZE			30
 
+static const uint32_t 	EEPROM_SIZE = 512;
+static const uint8_t 	EEPROM_WRITTEN = 0x1A;
+static const uint16_t 	NODE_CONFIG_SIZE = 1 + 2*2 + NODE_NAME_BUFFER_SIZE + 2*WIFI_CRED_BUFFER_SIZE;
+
 struct NodeConfig {
 	uint8_t savedToEEPROM = 0;
-	bool sleepCycleActive;
+	uint8_t sleepCycleActive;
 	uint16_t sleepTime_s;
 	uint16_t measureTime_s;
 
@@ -23,17 +27,8 @@ struct NodeConfig {
 	char ssid[WIFI_CRED_BUFFER_SIZE];
 	char password[WIFI_CRED_BUFFER_SIZE];
 
-	NodeConfig() {
-		EEPROM.begin(512);
-		NodeConfig *thisPtr = this;
-		EEPROM.get(0, thisPtr);
-		if (savedToEEPROM == 0) { // No config in EEPROM
-			setDefault();
-		}
-	}
-
 	void setDefault() {
-		sleepCycleActive 					= false;
+		sleepCycleActive 					= 0;
 		sleepTime_s							= 0;
 		measureTime_s 						= 0;
 		strcpy(nodeName, 					"default");
@@ -41,9 +36,38 @@ struct NodeConfig {
 		strcpy(password, 					"herpderp");
 	}
 
-	void saveToEEPROM(){
-		savedToEEPROM = 1;
-		EEPROM.put(0, this);
+
+	static void LoadFromEEPROM(NodeConfig *config) {
+		EEPROM.begin(EEPROM_SIZE);
+		if (EEPROM.read(0) == EEPROM_WRITTEN) {
+
+			uint8_t * byteStorageRead = (uint8_t *) config;
+			for (size_t i = 0; i < NODE_CONFIG_SIZE; i++) {
+				byteStorageRead[i] = EEPROM.read(0 + i);
+			}
+			Serial.println("Settings loaded from EEPROM");
+		}
+		EEPROM.end();
+	}
+
+	static void SaveToEEPROM(NodeConfig *config) {
+		Serial.print("Writing settings to EEPROM");
+		config->savedToEEPROM = EEPROM_WRITTEN;
+
+		uint8_t old = config->sleepCycleActive;
+		config->sleepCycleActive = 0; // No save pls #TODO remove
+
+		EEPROM.begin(EEPROM_SIZE);
+
+		uint8_t * byteStorage = (uint8_t *) config;
+		for (size_t i = 0; i < NODE_CONFIG_SIZE; i++) {
+			EEPROM.write(0 + i, byteStorage[i]);
+		}
+
+		EEPROM.commit();
+		EEPROM.end();
+
+		config->sleepCycleActive = old; // Revert
 	}
 
 };

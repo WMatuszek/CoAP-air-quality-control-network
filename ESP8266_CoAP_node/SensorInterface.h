@@ -9,52 +9,87 @@
 #define SENSORINTERFACE_H_
 
 #include "CoAP_node.h"
+#include <vector>
+#include <algorithm>
+
+struct SensorDevice {
+	SType_t type;
+	SState_t state;
+	SMeasureMode_t mode;
+};
 
 class SensorInterface {
 
 protected:
-	Sensor_t type;
-	SensorState_t state = SensorState_t::ON;
-	MeasureMode_t mode = MeasureMode_t::CONTINOUS;
+	std::vector<SensorDevice> sensors;
 
 public:
-	SensorInterface(Sensor_t type) : type(type) {}
+	SensorInterface() {}
 	virtual ~SensorInterface() {}
 
-	bool setState(SensorState_t newState) {
-		if (state == newState) return true;
-		if (newState == SensorState_t::ON) {
-			bool out = setOn();
-			if (out) state = newState;
+	bool setState(SType_t stype, SState_t newState) {
+		SensorDevice *s = getSensorByType(stype);
+		if (s == nullptr) return false;
+
+		if (s->state == newState) return true;
+		if (newState == SState_t::ON) {
+			bool out = setOn(stype);
+			if (out) s->state = newState;
 			return out;
 		}
-		if (newState == SensorState_t::OFF) {
-			bool out = setOff();
-			if (out) state = newState;
+		if (newState == SState_t::OFF) {
+			bool out = setOff(stype);
+			if (out) s->state = newState;
 			return out;
 		}
 	}
 
-	bool setMeasureMode(MeasureMode_t newMode) {
-		if (mode == newMode) return true;
-		if (newMode == MeasureMode_t::CONTINOUS) {
-			bool out = setModeContinous();
-			if (out) mode = newMode;
+	bool setMeasureMode(SType_t stype, SMeasureMode_t newMode) {
+		SensorDevice *s = getSensorByType(stype);
+		if (s == nullptr) return false;
+
+		if (s->mode == newMode) return true;
+		if (newMode == SMeasureMode_t::CONTINOUS) {
+			bool out = setModeContinous(stype);
+			if (out) s->mode = newMode;
 			return out;
 		}
-		if (newMode == MeasureMode_t::ON_DEMAND) {
-			bool out = setModeOnDemand();
-			if (out) mode = newMode;
+		if (newMode == SMeasureMode_t::ON_DEMAND) {
+			bool out = setModeOnDemand(stype);
+			if (out) s->mode = newMode;
 			return out;
 		}
+	}
+
+	bool isSensorOn(SType_t stype) {
+		SensorDevice *s = getSensorByType(stype);
+		if (s == nullptr) return false;
+		return s->state == SState_t::ON;
+	}
+	bool isModeContinous(SType_t stype) {
+		SensorDevice *s = getSensorByType(stype);
+		if (s == nullptr) return false;
+		return s->mode == SMeasureMode_t::CONTINOUS;
 	}
 
 private:
 
-	virtual bool setOn() = 0;
-	virtual bool setOff() = 0;
-	virtual bool setModeContinous() = 0;
-	virtual bool setModeOnDemand() = 0;
+	SensorDevice *getSensorByType(SType_t stype) {
+		SensorDevice *retval = nullptr;
+		std::vector<SensorDevice>::iterator it;
+		for (it = sensors.begin(); it != sensors.end(); ++it) {
+			if (it->type == stype) {
+				retval = &(*it);
+				break;
+			}
+		}
+		return retval;
+	}
+
+	virtual bool setOn(SType_t stype) = 0;
+	virtual bool setOff(SType_t stype) = 0;
+	virtual bool setModeContinous(SType_t stype) = 0;
+	virtual bool setModeOnDemand(SType_t stype) = 0;
 
 };
 

@@ -616,8 +616,8 @@ void coapServer::sendResponse( IPAddress ip, int port, char *payload) {
 
 
 	}else if(request->code_()==COAP_PUT){
-		String str="PUT OK";
-		const char *payload=str.c_str();
+//		String str="PUT OK";
+//		const char *payload=str.c_str();
 		response->code = COAP_CHANGED;
 		response->payload=(uint8_t *)payload;
 		response->payloadlen = strlen(payload);
@@ -633,8 +633,8 @@ void coapServer::sendResponse( IPAddress ip, int port, char *payload) {
 		sendPacket(response, ip, port);
 
 	}else if(request->code_()==COAP_POST){
-		String str="Post changed";
-		const char *payload=str.c_str();
+//		String str="Post changed";
+//		const char *payload=str.c_str();
 		response->code = COAP_CHANGED;
 		response->payload=(uint8_t *)payload;
 		response->payloadlen = strlen(payload);

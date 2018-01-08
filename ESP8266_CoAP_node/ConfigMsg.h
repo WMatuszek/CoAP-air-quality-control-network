@@ -46,12 +46,14 @@ public:
 	void parseConfigMsg();
 	bool isValid();
 	bool isComplete();
+	bool isTokenPresent(uint8_t index);
 
 	void clear();
 
-	char *getMsgBuffer();
-	char *getSSID();
-	char *getPW();
+	char *getMsgBuffer() { return msg; }
+	char *getNodeName() { return tokens[TOKEN_NODE_NAME]; }
+	char *getSSID() { return tokens[TOKEN_SSID]; }
+	char *getPW() { return tokens[TOKEN_PW]; }
 
 protected:
 

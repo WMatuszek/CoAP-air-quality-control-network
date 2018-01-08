@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2018-01-03 02:54:38
+//This file has been generated on 2018-01-08 01:56:33
 
 #include "Arduino.h"
 #include "CoAP_node.h"
@@ -20,6 +20,7 @@ void SensorsSetup() ;
 void WiFiSetup();
 void CoAPSetup();
 void loop() ;
+void sleepFor(uint16_t sleep_s) ;
 bool USARTSerialInputCheck(void);
 bool ReadNodeConfigMsg(void);
 bool ReadPM(void) ;

@@ -68,11 +68,14 @@ void ConfigMsg::parseConfigMsg() {
 		valid = false;
 		return;
 	}
-
 	Serial.println("- id token ok");
 
+	for (int i=0; i<ConfigMsg::NUM_OF_TOKENS; ++i) tokens[i] = NULL;
+	tokens[ConfigMsg::TOKEN_NODE_NAME] = strtok(NULL, sep);
 	tokens[ConfigMsg::TOKEN_SSID] = strtok(NULL, sep);
 	tokens[ConfigMsg::TOKEN_PW] = strtok(NULL, sep);
+	tokens[ConfigMsg::TOKEN_SLEEP_TIME] = strtok(NULL, sep);
+	tokens[ConfigMsg::TOKEN_MEASURE_TIME] = strtok(NULL, sep);
 
 	valid = true;
 }
@@ -85,22 +88,15 @@ bool ConfigMsg::isComplete() {
 	return state == State_t::COMPLETE;
 }
 
+bool ConfigMsg::isTokenPresent(uint8_t index){
+	if (tokens[index] == NULL) return false;
+	return strlen(tokens[index]) != 0;
+}
+
 void ConfigMsg::clear() {
 	state = IDLE;
 	valid = false;
 	msgIndex = 0;
-}
-
-char* ConfigMsg::getMsgBuffer() {
-	return msg;
-}
-
-char* ConfigMsg::getSSID() {
-	return tokens[ConfigMsg::TOKEN_SSID];
-}
-
-char* ConfigMsg::getPW() {
-	return tokens[ConfigMsg::TOKEN_PW];
 }
 
 bool ConfigMsg::tokenCountCorrect() {

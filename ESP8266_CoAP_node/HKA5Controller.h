@@ -53,7 +53,9 @@ protected:
 	uint8_t pin_sleep_ctrl;
 
 public:
-	HKA5Controller(uint8_t pin_sleep) : SensorInterface(Sensor_t::AIRQ), pin_sleep_ctrl(pin_sleep) {}
+	HKA5Controller(uint8_t pin_sleep) : SensorInterface(), pin_sleep_ctrl(pin_sleep) {
+		sensors.push_back({SType_t::AIRQ, SState_t::ON, SMeasureMode_t::CONTINOUS});
+	}
 	virtual ~HKA5Controller() {}
 
 	uint8_t *getMessagePtr(void) { return msg; }
@@ -80,10 +82,11 @@ public:
 	}
 
 private:
-	bool setOn(void) { digitalWrite(pin_sleep_ctrl, HIGH); return true; } // set pin high
-	bool setOff(void) { digitalWrite(pin_sleep_ctrl, LOW); return true; } // set pin low
-	bool setModeContinous() { return true; }
-	bool setModeOnDemand() { return true; }
+	bool setOn(SType_t stype) { digitalWrite(pin_sleep_ctrl, HIGH); return true; } // set pin high
+	bool setOff(SType_t stype) { digitalWrite(pin_sleep_ctrl, LOW); return true; } // set pin low
+	bool setModeContinous(SType_t stype) { return true; }
+	bool setModeOnDemand(SType_t stype) { return true; }
+
  };
 
 } /* namespace HKA5 */

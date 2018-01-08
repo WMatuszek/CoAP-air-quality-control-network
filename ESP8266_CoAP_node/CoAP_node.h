@@ -10,21 +10,23 @@
 
 #include "NodeConfig.h"
 
-enum Sensor_t { NONE = 0, AIRQ, TEMP, PRESS, TEMP_PRESS };
-enum SensorState_t { ON = 1, OFF = 0 };
-enum MeasureMode_t { CONTINOUS = 0, ON_DEMAND };
+#define SEC_TO_MS(s)								(1e3*(s))
+#define SEC_TO_US(s)								(1e6*(s))
+
+enum SType_t { NONE = 0, AIRQ, TEMP, PRESS, TEMP_PRESS };
+enum SState_t { OFF = 0, ON = 1 };
+enum SMeasureMode_t { CONTINOUS = 0, ON_DEMAND = 1};
 
 #define WIFI_CONNECT_ON_STARTUP
+#define NO_LED_BLINK
 
 #define _SERIAL_CONSOLE								Serial
 
 static const uint8_t HKA5_POWER_CTRL_PIN 			= 0;
 
+static const uint32_t SERVER_REPORT_INTERVAL_SEC 	= 20;
+static const uint32_t WIFI_CONNECT_WAIT_SEC 		= 15;
 static const uint32_t MEASUREMENT_CACHE_SIZE 		= 1;
-
-static const float TEMP_MIN_DELTA					= 0.1;
-static const float PRESS_MIN_DELTA					= 0.1;
-static const uint16_t PM_MIN_DELTA					= 1;
 
 static const char RESPONSE_OK[] = "OK";
 static const char RESPONSE_FAIL[] = "FAIL";
