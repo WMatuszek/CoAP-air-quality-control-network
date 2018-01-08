@@ -125,6 +125,7 @@ void CoAPSetup(){
 	coap.server(COAP_callback_PM, "pm");
 	coap.server(COAP_callback_pressure, "pressure");
 	coap.server(COAP_callback_temperature, "temperature");
+	coap.server(COAP_callback_battery, "battery");
 	coap.server(COAP_callback_nodeInfo, "sname");
 	coap.server(COAP_callback_sleepCycle, "sleepcycle");
 	coap.start();
@@ -324,16 +325,20 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 		return; // POST + OBSERVE bug in library
 	}
 	if (packet->code_() == COAP_METHOD::COAP_GET) {
-		using namespace ArduinoJson;
-		const size_t bufferSize = JSON_OBJECT_SIZE(3);
-		DynamicJsonBuffer jsonBuffer(bufferSize);
+		if (!HKA5Ctrl.isSensorOn(SType_t::AIRQ))
+			strcpy(resp, "OFF");
+		else {
+			using namespace ArduinoJson;
+			const size_t bufferSize = JSON_OBJECT_SIZE(3);
+			DynamicJsonBuffer jsonBuffer(bufferSize);
 
-		JsonObject& root = jsonBuffer.createObject();
-		root["pm1"] = Measured_PM.PM_1;
-		root["pm2_5"] = Measured_PM.PM_2_5;
-		root["pm10"] = Measured_PM.PM_10;
+			JsonObject& root = jsonBuffer.createObject();
+			root["pm1"] = Measured_PM.PM_1;
+			root["pm2_5"] = Measured_PM.PM_2_5;
+			root["pm10"] = Measured_PM.PM_10;
 
-		root.printTo(resp, respBufferSize);
+			root.printTo(resp, respBufferSize);
+		}
 	}
 	if (packet->code_() == COAP_METHOD::COAP_POST) {
 		using namespace ArduinoJson;
@@ -477,7 +482,7 @@ void COAP_callback_nodeInfo(coapPacket *packet, IPAddress ip, int port, int obse
 }
 
 void COAP_callback_sleepCycle(coapPacket *packet, IPAddress ip, int port, int observer){
-	_SERIAL_CONSOLE.print("Node info callback, payload: ");
+	_SERIAL_CONSOLE.print("Sleep cycle callback, payload: ");
 	char p[packet->payloadlen + 1];
 	memcpy(p, packet->payload, packet->payloadlen);
 	p[packet->payloadlen] = '\0';

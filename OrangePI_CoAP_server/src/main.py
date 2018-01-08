@@ -1,11 +1,13 @@
 import time
+import sys
+import os
 
 import CoAP_Node
-import HTTP_endpoint
-from CoAP_report_server import CoAPServer
-from CoAP_reverse_proxy import CoAPRevProxyServer
+import HTTP_Endpoint
+from CoAP_Report_Server import CoAPServer
+from CoAP_Reverse_Proxy import CoAPRevProxyServer
 from CoAP_Server_thread import ServerThread
-from CoAP_Client_thread import ClientThread
+from CoAP_Client_Thread import ClientThread
 
 class CoAPClientApp():
     """
@@ -42,7 +44,11 @@ class CoAPClientApp():
 
         self._refresh_nodes()
 
-    def get_nodes(self):
+    def get_nodes(self, refresh=False):
+        if refresh:
+            for node in self._known_nodes:
+                if node.discover_successful:
+                    ret = node.try_refresh(manual=True, blocking=True)
         return self._known_nodes
 
     def stop(self):
@@ -61,10 +67,18 @@ class CoAPClientApp():
     MAIN
 """
 def main():
-    from defines import EXTERNAL_INTERFACE, INTERNAL_INTERFACE, DEFAULT_PORT
+    from defines import EXTERNAL_INTERFACE, INTERNAL_INTERFACE, DEFAULT_PORT, OPTION_USE_PROXY
     from get_interface_ip import get_interface_ip
 
-    rev_proxy_server = CoAPRevProxyServer(get_interface_ip(EXTERNAL_INTERFACE), DEFAULT_PORT)
+    rev_proxy_server = None
+
+    if len(sys.argv) > 1:
+        if sys.argv[1] == OPTION_USE_PROXY:
+            rev_proxy_server = CoAPRevProxyServer(get_interface_ip(EXTERNAL_INTERFACE), DEFAULT_PORT)
+        else:
+            print "Unknown option"
+            quit()
+
     rev_proxy_thread = ServerThread(rev_proxy_server)
 
     report_server = CoAPServer(get_interface_ip(INTERNAL_INTERFACE), DEFAULT_PORT)
@@ -79,8 +93,8 @@ def main():
         client_thread.start()
         rev_proxy_thread.start()
 
-        HTTP_endpoint.install_coap_client_app_obj(client)
-        HTTP_endpoint.flaskApp.run(host='0.0.0.0', port=8000)
+        HTTP_Endpoint.install_coap_client_app_obj(client)
+        HTTP_Endpoint.flaskApp.run(host='0.0.0.0', port=8000)
 
         while True:
             time.sleep(1)
@@ -95,7 +109,7 @@ def main():
         rev_proxy_thread.join()
         print "Exiting..."
 
-    exit(1)
+    os._exit(1)
 
 
 if __name__ == '__main__':

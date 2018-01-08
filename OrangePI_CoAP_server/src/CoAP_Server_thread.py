@@ -9,7 +9,9 @@ class ServerThread(Thread):
         self.server = CoAP_server
 
     def run(self):
-        self.server.listen()
+        if self.server is not None:
+            self.server.listen()
 
     def stop(self):
-        self.server.close()
+        if self.server is not None:
+            self.server.close()

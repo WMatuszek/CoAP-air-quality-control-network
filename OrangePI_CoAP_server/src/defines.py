@@ -2,6 +2,8 @@ __author__ = 'Witold'
 
 from coapthon.defines import COAP_DEFAULT_PORT
 
+OPTION_USE_PROXY = "--use-proxy"
+
 REV_PROXY_NODES_XML_PATH = "rev_proxy_nodes.xml"
 
 DEFAULT_PORT = COAP_DEFAULT_PORT
@@ -21,13 +23,16 @@ known_resources = {
     "pressure": "pressure",
     "node_info": "sname",
     "air_quality": "pm",
-    "battery_state": "battery"
+    "battery_state": "battery",
+    "sleep_cycle": "sleepcycle"
 }
 observed_resources = [known_resources["air_quality"]]
 refreshable_resources = [known_resources["pressure"],
-                         known_resources["temperature"],
-                         known_resources["battery_state"]]
-
-info_resources = [known_resources["node_info"]]
+                         known_resources["temperature"]]
+on_demand_resources = [known_resources["node_info"],
+                       known_resources["pressure"],
+                       known_resources["temperature"],
+                       known_resources["battery_state"],
+                       known_resources["sleep_cycle"]]
 ignored_resources = [known_resources["response"]]
 

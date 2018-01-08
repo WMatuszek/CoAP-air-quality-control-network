@@ -22,7 +22,7 @@ enum SMeasureMode_t { CONTINOUS = 0, ON_DEMAND = 1};
 
 #define _SERIAL_CONSOLE								Serial
 
-static const uint8_t HKA5_POWER_CTRL_PIN 			= 0;
+static const uint8_t HKA5_POWER_CTRL_PIN 			= 0; // D3
 
 static const uint32_t SERVER_REPORT_INTERVAL_SEC 	= 20;
 static const uint32_t WIFI_CONNECT_WAIT_SEC 		= 15;

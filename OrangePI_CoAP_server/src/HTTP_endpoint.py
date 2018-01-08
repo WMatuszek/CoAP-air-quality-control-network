@@ -14,16 +14,14 @@ def install_coap_client_app_obj(client_obj):
     coap_client_app_obj = client_obj
 
 
-def parse_node_data():
+def parse_node_data(nodes_tmp):
     from defines import ignored_resources
 
-    nodes_tmp = coap_client_app_obj.get_nodes()
     nodes_info = []
     for node in nodes_tmp:
         node_info_dict = dict(info="", data=[])
-        node_info_dict['info'] = "Node " + \
-                                 (str(node.info) if node.info is not None else "UNKNOWN") \
-                                 + " at " + node.ip + ":" + str(node.port)
+        node_info_dict['info'] = (str(node.info) if node.info is not None else "UNKNOWN") + \
+                                 " at " + node.ip + ":" + str(node.port)
         for res in node.resources:
             if res.name not in ignored_resources:
                 node_info_dict['data'].append(res)
@@ -36,7 +34,7 @@ def parse_node_data():
 def index():
     node_data = []
     if coap_client_app_obj is not None:
-        node_data = parse_node_data()
+        node_data = parse_node_data(coap_client_app_obj.get_nodes())
     return render_template('node_report.html',
                            node_data=node_data,
                            server_port=DEFAULT_PORT,
@@ -47,7 +45,7 @@ def index():
 def refresh():
     node_data = []
     if coap_client_app_obj is not None:
-        node_data = parse_node_data()
+        node_data = parse_node_data(coap_client_app_obj.get_nodes(refresh=True))
     return render_template('node_report.html',
                            node_data=node_data,
                            server_port=DEFAULT_PORT,

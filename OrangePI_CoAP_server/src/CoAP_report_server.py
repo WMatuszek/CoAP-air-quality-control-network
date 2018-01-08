@@ -45,7 +45,7 @@ class CoAPServer(coapthon.server.coap.CoAP):
     def get_connected_nodes(self):
         import copy
         with self._connected_nodes_mutex:
-            nodes = copy.copy(self._connected_nodes_mutex)
+            nodes = copy.copy(self._connected_nodes)
         return nodes
 
     def listen(self, timeout=10):

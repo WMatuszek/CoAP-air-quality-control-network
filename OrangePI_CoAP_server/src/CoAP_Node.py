@@ -23,7 +23,7 @@ class NodeResource(object):
     Simple CoAP resource representation
     """
 
-    def __init__(self, uri, name, attributes, server, refreshable=False, observable=False):
+    def __init__(self, uri, name, attributes, server, refreshable=False, observable=False, on_demand=False):
         if uri[0] == '<' and uri[-1] == '>':
             uri = uri[1:-1]
 
@@ -33,6 +33,7 @@ class NodeResource(object):
 
         self._refreshable = refreshable
         self._observable = observable
+        self._on_demand = on_demand
         self._attributes = attributes
         self._server = server
 
@@ -57,8 +58,11 @@ class NodeResource(object):
     def is_observed(self):
         return self._observable
 
+    def is_on_demand(self):
+        return self._on_demand
+
     def is_fresh(self, max_age):
-        return (time() - self._last_update) > max_age
+        return (time() - self._last_update) < max_age
 
     def _start_observe(self):
         if self._observable:
@@ -80,13 +84,14 @@ class Node(object):
     """
 
     DISCOVER_TIMEOUT = 10
-    REFRESH_TIMEOUT = 10
-    NODE_INFO_TIMEOUT = 10
+    REFRESH_TIMEOUT = 6
+    NODE_INFO_TIMEOUT = 6
 
     def __init__(self, ip, port, is_active=True):
         self.ip = ip
         self.port = port
         self.info = "Node:" + self.ip
+        self.info_uri = ""
         self.active = is_active
         self.discover_successful = False
 
@@ -143,15 +148,31 @@ class Node(object):
         return True
 
     """
-        Try run refresh thread
+        Try refresh, auto by default, manual if specified
+        Does not run if thread already running - would cause multiple requests to unique server
+
+        Auto refresh calls GET for refreshable resources
+        Manual refresh calls GET for resources on demand
+
+        By default runs refresh in separate thread
     """
-    def try_refresh(self):
+    def try_refresh(self, manual=False, blocking=False):
         # Check if thread still running
         if self._refresh_thread is not None:
             if self._refresh_thread.is_alive():
                 return False
-        self._refresh_thread = threading.Thread(target=self._refresh)
-        self._refresh_thread.start()
+
+        if manual:
+            resources = [r for r in self.resources if r.is_on_demand()]
+        else:
+            resources = [r for r in self.resources
+                         if r.is_refreshable() and not r.is_fresh(NODE_DATA_REFRESH_INTERVAL_SECONDS)]
+
+        if not blocking:
+            self._refresh_thread = threading.Thread(target=self._refresh, args=[resources])
+            self._refresh_thread.start()
+        else:
+            self._refresh(resources)
         return True
 
     """
@@ -190,41 +211,45 @@ class Node(object):
 
             # Get node info resource
             if name == defines.known_resources["node_info"]:
-                self._to_log("getting node info")
-                resp = coap_client.get(uri, timeout=self.NODE_INFO_TIMEOUT)
-                self._to_log("received " + str(self.info))
-                if resp.payload:
-                    self.info = resp.payload
+                self.info_uri = uri
                 continue
 
             # Add resource if refreshable
             if name not in defines.ignored_resources:
                 refresh = name in defines.refreshable_resources
                 observe = name in defines.observed_resources
+                on_demand = name in defines.on_demand_resources
                 res = NodeResource(uri, name, attributes, (self.ip, self.port),
                                    refreshable=refresh,
-                                   observable=observe)
+                                   observable=observe,
+                                   on_demand=on_demand)
                 self.resources.append(res)
                 self._to_log("added resource " + name + " o=" + str(observe) + " r=" + str(refresh))
 
-        self.discover_successful = True
         coap_client.close()
+
+        self._to_log("getting node_name")
+        res = NodeResource(self.info_uri, "sname", [], (self.ip, self.port))
+        self._to_log("received node_name " + str(res.value))
+        self._refresh([res])
+        self.info = res.value
+
+        self.try_refresh(manual=True, blocking=False)
+        self.discover_successful = True
+
 
     """
         Node refresh thread method
     """
-    def _refresh(self):
+    def _refresh(self, resources):
+        if len(resources) == 0:
+            return
         coap_client = HelperClient(server=(self.ip, self.port))
-        refresh_cnt = 0
-        for res in self.resources:
-            if res.is_refreshable():
-                if res.is_fresh(NODE_DATA_REFRESH_INTERVAL_SECONDS):
-                    self._to_log("try refresh res=" + res.uri)
-                    response = coap_client.get(res.uri, timeout=self.REFRESH_TIMEOUT)
-                    res.update_value(response.payload)
-                    refresh_cnt += 1
-        if refresh_cnt > 0:
-            coap_client.close()
+        for res in resources:
+            self._to_log("try GET res=" + res.uri)
+            response = coap_client.get(res.uri, timeout=self.REFRESH_TIMEOUT)
+            res.update_value(response.payload)
+        coap_client.close()
 
     """
         Update refresh timer
