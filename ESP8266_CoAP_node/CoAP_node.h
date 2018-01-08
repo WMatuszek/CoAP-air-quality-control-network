@@ -28,7 +28,8 @@ static const uint32_t SERVER_REPORT_INTERVAL_SEC 	= 20;
 static const uint32_t WIFI_CONNECT_WAIT_SEC 		= 15;
 static const uint32_t MEASUREMENT_CACHE_SIZE 		= 1;
 
-static const char RESPONSE_OK[] = "OK";
-static const char RESPONSE_FAIL[] = "FAIL";
+static const char RESPONSE_OK[] 					= "OK";
+static const char RESPONSE_FAIL[] 					= "FAIL";
+static const char RESPONSE_NOT_SUPPORTED[] 			= "SETTING NOT SUPPORTED";
 
 #endif /* COAP_NODE_H_ */

@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2018-01-08 12:28:57
+//This file has been generated on 2018-01-08 13:47:00
 
 #include "Arduino.h"
 #include "CoAP_node.h"
@@ -17,7 +17,7 @@
 #include "ConfigMsg.h"
 void setup() ;
 void SensorsSetup() ;
-void WiFiSetup();
+void WiFiSetup(uint32_t timeout_s);
 void CoAPSetup();
 void loop() ;
 void sleepFor(uint16_t sleep_s) ;

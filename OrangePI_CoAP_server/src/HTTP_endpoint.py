@@ -20,7 +20,7 @@ def parse_node_data(nodes_tmp):
     nodes_info = []
     for node in nodes_tmp:
         node_info_dict = dict(info="", data=[])
-        node_info_dict['info'] = (str(node.info) if node.info is not None else "UNKNOWN") + \
+        node_info_dict['info'] = (str(node.node_name) if node.node_name is not None else "UNKNOWN") + \
                                  " at " + node.ip + ":" + str(node.port)
         for res in node.resources:
             if res.name not in ignored_resources:

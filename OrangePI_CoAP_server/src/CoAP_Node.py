@@ -90,8 +90,8 @@ class Node(object):
     def __init__(self, ip, port, is_active=True):
         self.ip = ip
         self.port = port
-        self.info = "Node:" + self.ip
-        self.info_uri = ""
+        self.node_name = "Node:" + self.ip
+        self.node_name_uri = ""
         self.active = is_active
         self.discover_successful = False
 
@@ -211,7 +211,7 @@ class Node(object):
 
             # Get node info resource
             if name == defines.known_resources["node_info"]:
-                self.info_uri = uri
+                self.node_name_uri = uri
                 continue
 
             # Add resource if refreshable
@@ -229,10 +229,11 @@ class Node(object):
         coap_client.close()
 
         self._to_log("getting node_name")
-        res = NodeResource(self.info_uri, "sname", [], (self.ip, self.port))
-        self._to_log("received node_name " + str(res.value))
+        res = NodeResource(self.node_name_uri, "sname", [], (self.ip, self.port))
         self._refresh([res])
-        self.info = res.value
+        self._to_log("received node_name " + str(res.value))
+        if res.value:
+            self.node_name = res.value
 
         self.try_refresh(manual=True, blocking=False)
         self.discover_successful = True

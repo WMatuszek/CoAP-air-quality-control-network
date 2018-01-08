@@ -64,7 +64,7 @@ void setup() {
 	yield();
 
 #ifdef WIFI_CONNECT_ON_STARTUP
-	WiFiSetup();
+	WiFiSetup(WIFI_CONNECT_WAIT_SEC * 10);
 	yield();
 	CoAPSetup();
 #endif
@@ -96,7 +96,7 @@ void SensorsSetup() {
 	}
 }
 
-void WiFiSetup(){
+void WiFiSetup(uint32_t timeout_s){
 	// WIFI config
 	_SERIAL_CONSOLE.println("\r\nWIFI config");
 //	WiFi.setAutoConnect(false);
@@ -104,7 +104,7 @@ void WiFiSetup(){
 	WiFi.mode(WiFiMode_t::WIFI_STA);
 	WiFi.setSleepMode(WiFiSleepType_t::WIFI_NONE_SLEEP);
 	WiFi.begin(NodeConfig.ssid, NodeConfig.password);
-	uint32_t connectWaitStop = millis() + SEC_TO_MS(WIFI_CONNECT_WAIT_SEC);
+	uint32_t connectWaitStop = millis() + SEC_TO_MS(SEC_TO_MS(timeout_s));
 	while (WiFi.status() != WL_CONNECTED ) {
 		delay(500); yield();
 		Serial.print(".");
@@ -158,7 +158,10 @@ void loop() {
 
 	if (WiFi.isConnected() == false){
 		_SERIAL_CONSOLE.println("WIFI dc'd, try reconnect");
-		WiFi.reconnect();
+		if (WiFi.reconnect() == false){
+			_SERIAL_CONSOLE.println("WIFI reconnect failed, retry setup");
+			WiFiSetup(WIFI_CONNECT_WAIT_SEC);
+		}
 	}
 
 	if (millis() > nextServerReport) {
@@ -200,7 +203,7 @@ bool USARTSerialInputCheck(void){
 		if (token == ConfigMsg::OPEN_CHAR) {
 			if (ReadNodeConfigMsg()) {
 				WiFi.disconnect();
-				WiFiSetup();
+				WiFiSetup(WIFI_CONNECT_WAIT_SEC);
 			}
 		}
 	}
@@ -350,10 +353,17 @@ void COAP_callback_PM(coapPacket *packet, IPAddress ip, int port, int observer){
 		if (root.success()) {
 			uint8_t state = root["on"];
 			uint8_t mode = root["mode"];
-			HKA5Ctrl.setState(SType_t::AIRQ, (SState_t)state);
-			HKA5Ctrl.setMeasureMode(SType_t::AIRQ, (SMeasureMode_t)mode);
-			_SERIAL_CONSOLE.println("PM sensor settings updated");
-			strcpy(resp, RESPONSE_OK);
+
+			if ((SMeasureMode_t)mode == SMeasureMode_t::ON_DEMAND) {
+				_SERIAL_CONSOLE.println("PM sensor unsupported settings detected, not updated");
+				strcpy(resp, RESPONSE_NOT_SUPPORTED);
+			}
+			else {
+				HKA5Ctrl.setState(SType_t::AIRQ, (SState_t)state);
+				HKA5Ctrl.setMeasureMode(SType_t::AIRQ, (SMeasureMode_t)mode);
+				_SERIAL_CONSOLE.println("PM sensor settings updated");
+				strcpy(resp, RESPONSE_OK);
+			}
 		}
 		else {
 			strcpy(resp, RESPONSE_FAIL);

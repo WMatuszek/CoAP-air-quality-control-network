@@ -40,7 +40,7 @@ class CoAPClientApp():
                 # Try add new node reverse proxy TODO wait for node info GET successful
                 if self._rev_proxy is not None:
                     address = node.ip + ":" + str(node.port)
-                    self._rev_proxy.add_proxied_node((address, node.info))
+                    self._rev_proxy.add_proxied_node((address, node.node_name))
 
         self._refresh_nodes()
 

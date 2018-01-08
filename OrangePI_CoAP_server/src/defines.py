@@ -30,8 +30,6 @@ observed_resources = [known_resources["air_quality"]]
 refreshable_resources = [known_resources["pressure"],
                          known_resources["temperature"]]
 on_demand_resources = [known_resources["node_info"],
-                       known_resources["pressure"],
-                       known_resources["temperature"],
                        known_resources["battery_state"],
                        known_resources["sleep_cycle"]]
 ignored_resources = [known_resources["response"]]
